@@ -15,36 +15,37 @@ The design supports **mobile usability**, prioritizes **stable UI**, and **rate-
 ```mermaid
 flowchart TB
   %% Data & bootstrap
-  A[User opens index.html<br/>GitHub Pages or static server] --> B[Read query params<br/>data_endpoint override]
-  B --> C[Fetch JSON dataset<br/>data/YYYY_NNN_annotated.json]
-  C --> D[Normalize rows<br/>trim/CRLF, unescape \'<br/>parse years, parse genres]
-  D --> E[Build in-memory index<br/>sortedSongs, rankToRow, rankToFrameIndex]
+  A["User opens index.html<br>GitHub Pages or static server"]
+    --> B["Read query params<br>data_endpoint override"]
+  B --> C["Fetch JSON dataset<br>data/YYYY_NNN_annotated.json"]
+  C --> D["Normalize rows<br>trim/CRLF, unescape ', parse years, parse genres"]
+  D --> E["Build in-memory index<br>sortedSongs, rankToRow, rankToFrameIndex"]
 
   %% UI + state
-  E --> F[Initialize UI<br/>panels, toggles, responsive classes]
-  F --> G[Initialize slider<br/>start at rank 885]
-  G --> H[Update dashboard on slider input<br/>currentFrameIndex changes]
+  E --> F["Initialize UI<br>panels, toggles, responsive classes"]
+  F --> G["Initialize slider<br>start at rank 885"]
+  G --> H["Update dashboard on slider input<br>currentFrameIndex changes"]
 
   %% Panels
-  H --> I[Current Song panel<br/>album art, title, artist, years]
-  H --> J[Next 10 panel<br/>rows clickable -> set slider]
-  H --> K[Charts render (SVG)<br/>bar leaderboards]
+  H --> I["Current Song panel<br>album art, title, artist, years"]
+  H --> J["Next 10 panel<br>rows clickable → set slider"]
+  H --> K["Charts render (SVG)<br>bar leaderboards"]
 
   %% Metrics
-  E --> M[Define metric set (cover countdown)]
-  M --> N[Bind metrics to chart slots<br/>panel-chart-1..9]
-  M --> O[Build metric time-series<br/>cumulative frames]
+  E --> M["Define metric set (cover countdown)"]
+  M --> N["Bind metrics to chart slots<br>panel-chart-1..9"]
+  M --> O["Build metric time-series<br>cumulative frames"]
   O --> K
 
   %% Player (rate-limit safe)
-  I --> P[Player controls]
-  P -->|Play pressed| Q[Open floating player]
-  Q --> R[Create iframe ONCE<br/>using embed_src (Bandcamp->Spotify->Deezer)]
-  H --> S[If slider changes while player open<br/>DO NOT reload iframe]
-  P -->|Close| T[Remove iframe + hide player]
+  I --> P["Player controls"]
+  P -->|Play pressed| Q["Open floating player"]
+  Q --> R["Create iframe ONCE<br>using embed_src (Bandcamp → Spotify → Deezer)"]
+  H --> S["If slider changes while player open<br>DO NOT reload iframe"]
+  P -->|Close| T["Remove iframe + hide player"]
 
   %% Styling behavior
-  F --> U[Phone defaults<br/>only Current + Next open]
+  F --> U["Phone defaults<br>only Current + Next open"]
   U --> H
 ```
 
