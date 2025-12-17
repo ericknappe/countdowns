@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WXPN Countdown Dashboards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root{
+      --bg:#121212;
+      --fg:#eee;
+      --muted:#ccc;
+      --accent:#9ad;
+      --divider:#2a2a2a;
+      --thumb:#2f2f2f;
+    }
+
+    body{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      margin:0;
+      padding:2rem;
+      line-height:1.55;
+    }
+
+    h1{
+      font-size:1.9rem;
+      margin:0 0 0.75rem 0;
+    }
+
+    h2{
+      font-size:1.3rem;
+      margin:2.25rem 0 0.75rem 0;
+    }
+
+    p{
+      max-width:44rem;
+      color:var(--muted);
+      margin:0.75rem 0;
+    }
+
+    section{
+      margin-top:2rem;
+    }
+
+    a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+
+    a:hover{
+      text-decoration:underline;
+    }
+
+    /* Countdown link lists */
+    .countdown-list{
+      max-width:48rem;
+      margin:0.75rem 0;
+      padding:0;
+      list-style:none;
+    }
+
+    .countdown-list li{
+      display:flex;
+      align-items:center;
+      gap:0.75rem;
+      padding:0.4rem 0;
+      border-bottom:1px solid var(--divider);
+    }
+
+    .countdown-list li:last-child{
+      border-bottom:none;
+    }
+
+    .thumb{
+      width:28px;
+      height:28px;
+      border-radius:4px;
+      background:var(--thumb);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.75rem;
+      color:#aaa;
+      flex-shrink:0;
+    }
+
+    .planned-list{
+      max-width:44rem;
+      color:#aaa;
+      padding-left:1.1rem;
+    }
+
+    ul.standard{
+      max-width:44rem;
+      padding-left:1.2rem;
+      margin:0.5rem 0 1rem 0;
+    }
+
+    footer{
+      margin-top:3.5rem;
+      font-size:0.85rem;
+      color:#888;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>WXPN Countdown Dashboards</h1>
+
+  <p>
+    A collection of interactive, single-page dashboards exploring
+    WXPN music countdowns.
+  </p>
+
+  <section>
+    <h2>Available Dashboards</h2>
+
+    <ul class="countdown-list">
+      <li>
+        <div class="thumb">885</div>
+        <a href="greatest-cover-songs/">WXPN 885 Greatest Cover Songs</a>
+      </li>
+
+      <li>
+        <div class="thumb">885</div>
+        <a href="greatest-songs-by-women/">WXPN 885 Greatest Songs by Women</a>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Planned Dashboards</h2>
+
+    <ul class="planned-list">
+      <li>WXPN 2020 Greatest Songs of All Time</li>
+      <li>WXPN 885 Greatest Songs of the Century</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>About These Dashboards</h2>
+
+    <p>
+      These are fan-made, interactive music countdown dashboards created for
+      exploration and enjoyment.
+    </p>
+
+    <p>Each countdown lets you:</p>
+
+    <ul class="standard">
+      <li>move through songs one at a time</li>
+      <li>listen to preview clips when available, or open the song in your music service</li>
+      <li>use the slider to see patterns across artists, years, albums, decades, and genres</li>
+    </ul>
+
+    <p>
+      <strong>How to use:</strong> drag the slider to move through the countdown,
+      or tap a song in the “Next 10” list to jump ahead.
+    </p>
+
+    <p>
+      The dashboards work on desktop, tablet, and phone, with no login,
+      tracking, or downloads required.
+    </p>
+
+    <p>
+      This is not an official WXPN project. It’s a community-minded,
+      non-commercial effort shared in the spirit of music discovery.
+      Song metadata and links are gathered from multiple sources, and not
+      every song has a preview available.
+    </p>
+  </section>
+
+  <footer>
+    Built as static, client-side dashboards · No tracking · No frameworks
+  </footer>
+
+</body>
+</html>

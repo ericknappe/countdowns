@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>WXPN Countdown</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #eee;
+
+      height: 100vh;
+      overflow: hidden; /* Option 1: page doesn't scroll */
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      flex: 0 0 auto;
+      padding: 6px 0 2px;
+      text-align: center;
+      background: #111;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f5f5f5;
+    }
+
+    #controls {
+      flex: 0 0 auto;
+      padding: 4px 0 8px;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      border-bottom: 1px solid #222;
+    }
+    #controls-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 720px;
+      width: 100%;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #222;
+      border: 1px solid #333;
+    }
+    #controls-inner label {
+      white-space: nowrap;
+      font-size: 13px;
+      color: #eee;
+    }
+    #frameLabel {
+      min-width: 64px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    /* Finger-friendly slider */
+    #frameSlider {
+      flex: 1;
+      height: 22px;
+      -webkit-appearance: none;
+      background: transparent;
+      touch-action: pan-y;
+    }
+    #frameSlider::-webkit-slider-runnable-track {
+      height: 6px;
+      background: #444;
+      border-radius: 999px;
+    }
+    #frameSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #eee;
+      border: 2px solid #111;
+      margin-top: -9px;
+    }
+    #frameSlider::-moz-range-track {
+      height: 6px;
+      background: #444;
+      border-radius: 999px;
+    }
+    #frameSlider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #eee;
+      border: 2px solid #111;
+    }
+
+    /* Dashboard is the scroll container */
+    #dashboard {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 42px;      /* base row unit */
+      grid-auto-flow: dense;     /* pack collapsed tiles upward */
+      gap: 6px;
+      padding: 6px;
+    }
+
+    @media (max-width: 1200px) { #dashboard { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 800px)  { #dashboard { grid-template-columns: repeat(2, 1fr); } }
+
+    .cell {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 4px 5px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      cursor: move;
+    }
+    .cell.is-expanded { grid-row: span 8; }
+    .cell.is-collapsed { grid-row: span 1; padding-bottom: 0; }
+    .cell.is-collapsed .cell-header { margin-bottom: 0; }
+
+    .cell-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .cell-title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f0f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+    .cell-toggle {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #262626;
+      color: #eee;
+      cursor: pointer;
+    }
+    .cell-toggle:hover { background: #333; }
+
+    .cell-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    svg.chart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #current-song {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      gap: 8px;
+      padding-top: 4px;
+      min-height: 0;
+    }
+
+    /* fixed art box to prevent jumpiness */
+    #current-song img {
+      max-width: 70%;
+      height: 160px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.7);
+      object-fit: cover;
+      background: #000;
+      transition: opacity 0.2s ease-in-out;
+    }
+    #current-song img.no-art {
+      opacity: 0;
+      box-shadow: none;
+    }
+
+    #current-song .song-title { font-size: 15px; font-weight: 600; }
+    #current-song .song-artist { font-size: 14px; color: #ccc; }
+    #current-song .song-meta { font-size: 13px; color: #aaa; }
+
+    .dragging { opacity: 0.6; outline: 2px dashed #888; }
+
+    @media (pointer: coarse) { .cell { cursor: default; } }
+    @media (max-width: 800px) {
+      header h1 { font-size: 18px; }
+      .cell-title { font-size: 15px; }
+      #current-song .song-title { font-size: 17px; }
+      #current-song .song-artist { font-size: 15px; }
+      #current-song .song-meta { font-size: 14px; }
+    }
+
+    /* Optional spacer to keep a 3x3 screenshot composition */
+    .spacer {
+      background: transparent;
+      border: none;
+      cursor: default;
+      padding: 0;
+    }
+    .spacer.is-expanded { grid-row: span 8; }
+
+    /* ===== Current Song Player ===== */
+    .player-actions { margin-top: 8px; display:flex; gap:8px; justify-content:center; }
+    .player-actions button {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #262626;
+      color: #eee;
+      cursor: pointer;
+    }
+    .player-actions button:hover { background:#333; }
+
+    .player-links { margin-top: 8px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    .player-links a {
+      text-decoration:none;
+      border:1px solid rgba(255,255,255,.16);
+      padding:4px 8px;
+      border-radius:999px;
+      color:#eee;
+      font-size: 11px;
+    }
+    .player-links a:hover { border-color: rgba(255,255,255,.28); }
+
+    .player-embed iframe {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      margin-top: 8px;
+      height: 120px;
+      border: 1px solid rgba(255,255,255,.28);
+      background: #0f0f0f;
+    }
+    .player-embed .play-btn {
+      margin-top: 8px;
+      width: 100%;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #3a3a3a;
+      background: #1f1f1f;
+      color: #eee;
+      cursor: pointer;
+    }
+    .player-embed .play-btn:hover { background:#2a2a2a; }
+
+    .hidden { display:none !important; }
+
+    .floating-player {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      width: min(520px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+      z-index: 9999;
+    }
+    .floating-bar {
+      position: sticky;
+      top: 0;
+      background: #181818;
+      padding: 8px 10px;
+      border-bottom: 1px solid #2a2a2a;
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 8px;
+    }
+    .floating-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #eee;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .floating-bar button {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: #262626;
+      color: #eee;
+      cursor: pointer;
+    }
+    .floating-bar button:hover { background:#333; }
+
+    /* ===== Recent songs list ===== */
+    .recent-songs { width:100%; overflow:auto; max-height:100%; padding: 6px 10px 10px; box-sizing: border-box; }
+    .recent-table { width:100%; border-collapse: collapse; font-size: 11px; }
+    .recent-table thead th {
+      position: sticky; top: 0;
+      background: rgba(20,20,20,0.95);
+      color: #ddd;
+      text-align: left;
+      padding: 6px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      white-space: nowrap;
+    }
+    .recent-table tbody td {
+      padding: 6px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      vertical-align: top;
+    }
+    .recent-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+    .recent-table td:nth-child(1) { width: 54px; opacity: 0.9; }
+
+  
+    .player-unavailable{
+      font-size: 11px;
+      color: #bdbdbd;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255,255,255,.25);
+      background: rgba(255,255,255,.04);
+      white-space: nowrap;
+    }
+
+    /* Last 10 Songs (cell9) tweaks */
+    #cell9 .cell-body { padding-left: 14px; padding-right: 14px; }
+    #cell9 .cell-header { padding-left: 14px; padding-right: 14px; }
+    #cell9 table { font-size: 12px; }
+    #cell9 th { font-size: 11px; opacity: 0.9; }
+    #cell9 td { padding-top: 6px; padding-bottom: 6px; }
+
+  
+    /* iPad / mobile responsive grid presets (target #dashboard) */
+    /* iPhone and small devices: 1 column */
+    @media (max-width: 700px) {
+      #dashboard { grid-template-columns: repeat(2, 1fr); }
+      .floating-player{
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        max-height: 60vh;
+      }
+    }
+    /* iPad portrait: 2 columns */
+    @media (max-width: 1100px) and (orientation: portrait) {
+      #dashboard { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* iPad landscape (incl. large iPad Pros): 3 columns */
+    @media (max-width: 1400px) and (orientation: landscape) {
+      #dashboard { grid-template-columns: repeat(3, 1fr); }
+    }
+      .floating-player{
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        max-height: 60vh;
+      }
+    }
+
+  
+      
+    /* Phone layout override (JS adds .is-phone and .is-landscape) */
+    body.is-phone:not(.is-landscape) #dashboard { grid-template-columns: 1fr !important; }
+    body.is-phone.is-landscape #dashboard { grid-template-columns: repeat(2, 1fr) !important; }
+
+  
+    /* Backup: phone portrait should be 1 column even if JS class fails */
+    @media (max-width: 520px) and (orientation: portrait) {
+      #dashboard { grid-template-columns: 1fr !important; }
+    }
+
+  
+/* Phone portrait: 1 column (no JS dependency) */
+@media (max-width: 520px) and (orientation: portrait) {
+  #dashboard { grid-template-columns: 1fr; }
+}
+
+/* Phone landscape: 2 columns */
+@media (max-width: 900px) and (orientation: landscape) {
+  #dashboard { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Tighten Last 10 Songs in 2x5 layouts */
+@media (min-width: 600px) and (max-width: 1200px) {
+  #cell9 .recent-table { font-size: 11px; }
+  #cell9 td { padding-top: 4px; padding-bottom: 4px; }
+  #cell9 .cell-body { max-height: 240px; overflow-y: auto; padding-left: 10px; padding-right: 10px; }
+}
+
+</style>
+</head>
+
+<body>
+  <header>
+    <h1 id="page-title">WXPN Countdown</h1>
+  </header>
+
+  <div id="controls">
+    <div id="controls-inner">
+      <label for="frameSlider">Song number:</label>
+      <input type="range" id="frameSlider" min="0" max="0" value="0" step="1" />
+      <div id="frameLabel">0</div>
+    </div>
+  </div>
+
+  <div id="dashboard">
+    <!-- Row 1 -->
+    <div class="cell draggable-cell is-expanded" id="cell2">
+      <div class="cell-header">
+        <span class="cell-title">Current Song</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body">
+        <div id="current-song">
+          <img id="current-album-art" src="" alt="" class="no-art" />
+          <div class="song-title" id="current-song-title">Loading…</div>
+          <div class="song-artist" id="current-song-artist"></div>
+          <div class="song-meta" id="current-song-meta"></div>
+
+          <div id="current-player-actions" class="player-actions">
+  <button id="player-play-btn" type="button">Play</button>
+  <span id="player-unavailable-msg" class="player-unavailable hidden"></span>
+</div>
+          <div id="current-player-embed" class="player-embed"></div>
+          <div id="current-player-links" class="player-links"></div>
+        </div>
+      </div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell9">
+      <div class="cell-header">
+        <span class="cell-title">Last 10 Songs</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body">
+        <div class="recent-songs">
+          <table class="recent-table">
+            <thead><tr><th>Rank</th><th>Song</th><th>Artist</th><th id="next-col-4">Original</th></tr></thead>
+            <tbody id="recent-songs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell1">
+      <div class="cell-header">
+        <span class="cell-title">Most Covered Original Artists</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-1"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell3">
+      <div class="cell-header">
+        <span class="cell-title">Most Represented Genres</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-2"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell4">
+      <div class="cell-header">
+        <span class="cell-title">Most Covered Original Songs</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-3"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell5">
+      <div class="cell-header">
+        <span class="cell-title">Most Covered Original Decades</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-4"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell6">
+      <div class="cell-header">
+        <span class="cell-title">Most Frequent Cover Artists</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-5"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell7">
+      <div class="cell-header">
+        <span class="cell-title">Most Covered Original Years</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-6"></svg></div>
+    </div>
+<div class="cell draggable-cell is-expanded" id="cell8">
+      <div class="cell-header">
+        <span class="cell-title">Most Frequent Cover Years</span>
+        <button class="cell-toggle" type="button">Hide</button>
+      </div>
+      <div class="cell-body"><svg class="chart" id="chart-slot-7"></svg></div>
+    </div>
+  </div>
+
+
+  <!-- Floating detachable player -->
+  <div id="floating-player" class="floating-player hidden" aria-live="polite">
+    <div class="floating-bar">
+      <div class="floating-title" id="floating-title">Now Playing</div>
+      <button id="player-close-btn" type="button">Close</button>
+    </div>
+    <div style="padding:10px;">
+      <div id="floating-player-embed" class="player-embed"></div>
+      <div id="floating-player-links" class="player-links"></div>
+    </div>
+  </div>
+
+<script>
+/* ===================== Config ===================== */
+const APP_CONFIG = {
+  countdownName: "WXPN 885 Greatest Songs By Women",
+  dataFile: "data/2023_885_annotated.json",
+  rankMax: 885,
+  mode: "standard",
+  metrics: ["artists","years","albums","decades","genres"]
+};    
+const urlParams = new URLSearchParams(window.location.search);
+const DATA_ENDPOINT =
+  urlParams.get("data_endpoint") ||
+  (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.dataFile);
+
+/* Option D thresholds */
+const MIN_COUNT_ORIG_ARTIST = 2;
+const MIN_COUNT_COVER_ARTIST = 2;
+const MIN_COUNT_GENRE = 3;
+const MIN_COUNT_ORIG_SONG = 2;
+const MIN_COUNT_DECADE = 2;
+const MIN_COUNT_ORIG_YEAR = 2;
+const MIN_COUNT_COVER_YEAR = 2;
+
+/* Display filtering */
+const MIN_DISPLAY_COUNT = 2;
+
+/* Fast risers */
+const MOMENTUM_WINDOW = 20;
+const FAST_RISER_THRESHOLD = 5;
+
+/* Top N */
+const TOP_N_ARTISTS = 15;
+const TOP_N_ORIG_SONGS = 15;
+const TOP_N_GENRES = 20;
+const TOP_N_DECADES = 10;
+const TOP_N_YEARS = 15;
+
+/* Labels */
+const MAX_LABEL_CHARS = 25;
+const BAR_HEIGHT_FACTOR = 1/3;
+
+/* Elements */
+const frameSlider = document.getElementById("frameSlider");
+const frameLabel  = document.getElementById("frameLabel");
+
+const currentAlbumArt  = document.getElementById("current-album-art");
+const currentSongTitle = document.getElementById("current-song-title");
+const currentSongArtist= document.getElementById("current-song-artist");
+const currentSongMeta  = document.getElementById("current-song-meta");
+const recentSongsBody = document.getElementById("recent-songs-body");
+var rankToRow = {};
+var rankToFrameIndex = {};
+/* ===================== Player (on-demand, floating) ===================== */
+(function () {
+  if (window.Race2Player) return;
+
+  var state = { open: false, lastSong: null };
+
+  function pickProvider(media) {
+    if (!media) return null;
+
+    var bc = media.bandcamp;
+    if (bc && (bc.status === "manual" || bc.status === "found") && bc.embed_src) {
+      return { key: "bandcamp", embed_src: bc.embed_src, height: 120 };
+    }
+
+    var sp = media.spotify;
+    if (sp && sp.status === "found" && sp.embed_src) {
+      return { key: "spotify", embed_src: sp.embed_src, height: 152 };
+    }
+
+    var dz = media.deezer;
+    if (dz && dz.status === "found" && dz.embed_src) {
+      return { key: "deezer", embed_src: dz.embed_src, height: 200 };
+    }
+
+    return null;
+  }
+
+  function setFloatingTitle(row) {
+    var el = document.getElementById("floating-title");
+    if (!el) return;
+    var t = cleanLabelText((row && row.song) || "");
+    var a = cleanLabelText((row && row.artist) || "");
+    el.textContent = (t && a) ? (t + " — " + a) : "Now Playing";
+  }
+
+  function setAttachedAvailability(row) {
+    var playBtn = document.getElementById("player-play-btn");
+    var msg = document.getElementById("player-unavailable-msg");
+    if (!playBtn || !msg) return;
+
+    var provider = pickProvider(row && row.media);
+    if (provider && provider.embed_src) {
+      playBtn.classList.remove("hidden");
+      playBtn.disabled = false;
+      playBtn.textContent = "Play";
+      msg.classList.add("hidden");
+      msg.textContent = "";
+    } else {
+      playBtn.classList.add("hidden");
+      msg.classList.remove("hidden");
+      msg.textContent = "No preview available";
+    }
+  }
+
+  function renderFloating(row) {
+    var embedEl = document.getElementById("floating-player-embed");
+    var linksEl = document.getElementById("floating-player-links");
+    if (!embedEl || !linksEl) return;
+
+    var provider = pickProvider(row && row.media);
+    if (provider && provider.embed_src) {
+      embedEl.innerHTML =
+        '<iframe loading="lazy"' +
+        ' src="' + provider.embed_src + '"' +
+        ' style="width:100%;height:' + provider.height + 'px;border:0;border-radius:10px;margin-top:10px"' +
+        ' allow="autoplay; encrypted-media; fullscreen; picture-in-picture"' +
+        ' referrerpolicy="no-referrer"></iframe>';
+    } else {
+      embedEl.innerHTML = '<div class="song-meta" style="margin-top:10px;color:#aaa;">No embedded player available.</div>';
+    }
+
+    var m = (row && row.media) ? row.media : {};
+    var links = [];
+    if (m.spotify && m.spotify.url)  links.push('<a href="' + m.spotify.url + '">Open in Spotify</a>');
+    if (m.deezer  && m.deezer.url)   links.push('<a href="' + m.deezer.url + '">Open in Deezer</a>');
+    if (m.bandcamp && m.bandcamp.url) links.push('<a href="' + m.bandcamp.url + '">Support on Bandcamp</a>');
+    linksEl.innerHTML = links.join("");
+  }
+
+  function open(row) {
+    var floating = document.getElementById("floating-player");
+    if (!floating) return;
+    state.open = true;
+    floating.classList.remove("hidden");
+    setFloatingTitle(row);
+    renderFloating(row);
+  }
+
+  function close() {
+    var floating = document.getElementById("floating-player");
+    if (!floating) return;
+    state.open = false;
+    floating.classList.add("hidden");
+    var embedEl = document.getElementById("floating-player-embed");
+    if (embedEl) embedEl.innerHTML = "";
+  }
+
+  function play() {
+    var row = state.lastSong;
+    var provider = pickProvider(row && row.media);
+    if (!provider || !provider.embed_src) return;
+    open(row);
+    var playBtn = document.getElementById("player-play-btn");
+    if (playBtn) playBtn.textContent = "Playing";
+  }
+
+  function update(row) {
+    state.lastSong = row;
+    setAttachedAvailability(row);
+    if (state.open) {
+      setFloatingTitle(row);
+      renderFloating(row);
+    }
+  }
+
+  window.Race2Player = { update: update, play: play, close: close };
+})();
+
+/* Wire player buttons (Safari compatible) */
+document.addEventListener("click", function(e){
+  if (!e || !e.target) return;
+  if (e.target.id === "player-play-btn") {
+    if (window.Race2Player && typeof window.Race2Player.play === "function") window.Race2Player.play();
+  }
+  if (e.target.id === "player-close-btn") {
+    if (window.Race2Player && typeof window.Race2Player.close === "function") window.Race2Player.close();
+    var playBtn = document.getElementById("player-play-btn");
+    if (playBtn) playBtn.textContent = "Play";
+  }
+});
+
+
+/* ===================== Helpers ===================== */
+function truncateLabel(label, maxLen) {
+  if (!label) return "";
+  const s = String(label);
+  if (s.length <= maxLen) return s;
+  if (maxLen <= 1) return s.slice(0, maxLen);
+  return s.slice(0, maxLen - 1) + "…";
+}
+
+function cleanLabelText(s) {
+  return String(s || "").replace(/\\'/g, "'");
+}
+
+function renderUpcomingFromCurrent(currentRank) {
+  if (!recentSongsBody) return;
+
+  // Spec:
+  // - When currentRank is APP_CONFIG.rankMax (end), show nothing.
+  // - When currentRank is 1, show 1..10.
+  // - Always sort/display ascending starting from currentRank.
+  var rows = [];
+  var cr = Number(currentRank || 0);
+  if (!cr || isNaN(cr)) { recentSongsBody.innerHTML = ""; return; }
+  if (cr >= APP_CONFIG.rankMax) { recentSongsBody.innerHTML = ""; return; }
+
+  var start = cr;
+  var end = Math.min(APP_CONFIG.rankMax, cr + 9);
+
+  for (var r = start; r <= end; r++) {
+    if (r === APP_CONFIG.rankMax) { /* allowed, but if cr==APP_CONFIG.rankMax we already returned */ }
+    var row = rankToRow[r];
+    if (row) rows.push(row);
+  }
+
+  var htmlRows = [];
+  for (var i=0; i<rows.length; i++) {
+    var rr = rows[i];
+    var rank = (rr.rank != null) ? String(rr.rank) : "";
+    var song = rr.song ? cleanLabelText(rr.song) : "";
+    var artist = rr.artist ? cleanLabelText(rr.artist) : "";
+    var mode3 = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
+    var col4 = "";
+    if (mode3 === "cover") col4 = rr.originalArtist ? cleanLabelText(rr.originalArtist) : "";
+    else col4 = rr.album ? cleanLabelText(rr.album) : "";
+    htmlRows.push("<tr data-rank=\"" + rank + "\"><td>" + rank + "</td><td>" + song + "</td><td>" + artist + "</td><td>" + col4 + "</td></tr>");
+  }
+  recentSongsBody.innerHTML = htmlRows.join("");
+}
+
+function pushRecent(row) {
+  if (!row) return;
+  // Key by id if present, else rank+song
+  var key = (row.id != null) ? String(row.id) : (String(row.rank || "") + "|" + String(row.song || ""));
+  // Remove existing
+  for (var i=0; i<recentHistory.length; i++) {
+    var k = (recentHistory[i].id != null) ? String(recentHistory[i].id) : (String(recentHistory[i].rank || "") + "|" + String(recentHistory[i].song || ""));
+    if (k === key) { recentHistory.splice(i,1); break; }
+  }
+  recentHistory.push({
+    id: row.id,
+    rank: row.rank,
+    song: row.song,
+    artist: row.artist,
+    originalArtist: row.originalArtist
+  });
+  while (recentHistory.length > 15) recentHistory.shift();
+  renderRecentSongs();
+}
+
+
+/* Extract first 4-digit year anywhere */
+function parseYearFromString(value) {
+  if (value === null || value === undefined) return null;
+  const m = String(value).match(/\b(18|19|20)\d{2}\b/);
+  if (!m) return null;
+  const year = parseInt(m[0], 10);
+  if (isNaN(year) || year < 1800 || year > 2100) return null;
+  return year;
+}
+
+function computeDecade(year) {
+  if (year === null || year === undefined || isNaN(year)) return null;
+  const y = parseInt(year, 10);
+  return (Math.floor(y / 10) * 10) + "s";
+}
+
+/* Simple PHP-serialized genre extraction: grabs quoted strings */
+function parseGenres(value){
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  const s0 = String(value);
+  const s = s0.replace(/\\"/g, '"').replace(/\\'/g, "'").trim();
+  if (!s) return [];
+  // PHP serialized array: a:N:{...s:L:"genre"...}
+  if (s.startsWith("a:")) {
+    const regex = /s:\d+:"(.*?)"/g;
+    const out = [];
+    let m;
+    while ((m = regex.exec(s)) !== null) out.push(m[1]);
+    return out.map(v => String(v).trim()).filter(Boolean);
+  }
+  // JSON array string
+  if (s.startsWith("[") && s.endsWith("]")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) return arr.map(v => String(v).trim()).filter(Boolean);
+    } catch(e){}
+  }
+  // Single genre string
+  return [s];
+}
+
+
+function computeGlobalMax(framesCounts, minDisplay) {
+  let maxVal = 0;
+  framesCounts.forEach(frame => {
+    Object.values(frame).forEach(v => {
+      if (v != null && v >= minDisplay && v > maxVal) maxVal = v;
+    });
+  });
+  return maxVal;
+}
+
+function buildMetricTimeSeries(sortedRows, categoryFn, minCountFinal) {
+  const finalCounts = new Map();
+  sortedRows.forEach(row => {
+    const cats = categoryFn(row) || [];
+    cats.forEach(cat => {
+      if (cat === null || cat === undefined || cat === "") return;
+      finalCounts.set(cat, (finalCounts.get(cat) || 0) + 1);
+    });
+  });
+
+  const allowed = new Set(
+    Array.from(finalCounts.entries())
+      .filter(([, cnt]) => cnt >= minCountFinal)
+      .map(([c]) => c)
+  );
+
+  const frames = [];
+  const currentCounts = new Map();
+
+  sortedRows.forEach(row => {
+    const cats = categoryFn(row) || [];
+    cats.forEach(cat => {
+      if (!allowed.has(cat)) return;
+      currentCounts.set(cat, (currentCounts.get(cat) || 0) + 1);
+    });
+    const snapshot = {};
+    currentCounts.forEach((v, k) => { snapshot[k] = v; });
+    frames.push(snapshot);
+  });
+
+  return { frames, allowed };
+}
+
+function chooseTickStep(maxVal) {
+  if (maxVal <= 20) return 2;
+  if (maxVal <= 50) return 5;
+  if (maxVal <= 250) return 25;
+  if (maxVal <= 500) return 50;
+  return 100;
+}
+
+function setupChart(svgElement, topN, globalMax, allowedSet) {
+  const svg = d3.select(svgElement);
+  svg.selectAll("*").remove();
+
+  const width = svg.node().clientWidth || 400;
+  const height = svg.node().clientHeight || 240;
+
+  let marginLeft;
+  if (width <= 360) marginLeft = 90;
+  else if (width <= 420) marginLeft = 105;
+  else if (width <= 500) marginLeft = 115;
+  else if (width <= 900) marginLeft = 150;
+  else marginLeft = 165;
+
+  const margin = { top: 4, right: 8, bottom: 18, left: marginLeft };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const g = svg
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const maxVal = Math.max(globalMax, 2);
+  const step = chooseTickStep(maxVal);
+  const xMaxRounded = Math.ceil(maxVal / step) * step;
+  const xScale = d3.scaleLinear().domain([0, xMaxRounded]).range([0, innerWidth]);
+  const ticks = d3.range(0, xMaxRounded + step, step);
+
+  const xAxisGrid = d3.axisBottom(xScale)
+    .tickValues(ticks)
+    .tickSize(-innerHeight)
+    .tickFormat("");
+
+  g.append("g")
+    .attr("class", "x-grid")
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(xAxisGrid)
+    .selectAll("line")
+    .attr("stroke", "#333")
+    .attr("stroke-dasharray", "2,2");
+
+  const xAxis = d3.axisBottom(xScale).tickValues(ticks).tickFormat(d3.format("d"));
+
+  g.append("g")
+    .attr("class", "x-axis")
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(xAxis)
+    .selectAll("text")
+    .attr("fill", "#ccc")
+    .attr("font-size", 9);
+
+  const slotHeight = innerHeight / topN;
+  const barHeight = slotHeight * BAR_HEIGHT_FACTOR;
+
+  const colorRange = d3.schemeTableau10.concat(d3.schemeSet3); /* 22 colors */
+  const domainCats = Array.from(allowedSet).sort((a,b) => String(a).localeCompare(String(b)));
+  const colorScale = d3.scaleOrdinal(colorRange).domain(domainCats);
+
+  return { svg, g, innerWidth, innerHeight, xScale, slotHeight, barHeight, topN, colorScale };
+}
+
+function updateChart(chart, frameCounts, prevFrameCounts, allowedSet, labelFn, fullLabelFn, options) {
+  const { slotHeight, barHeight, xScale, g, topN, colorScale } = chart;
+
+  const minDisplay = options.minDisplayCount;
+  const fastThreshold = options.fastRiserThreshold;
+
+  const entries = Object.entries(frameCounts || {})
+    .filter(([cat, cnt]) => allowedSet.has(cat) && cnt != null && cnt >= minDisplay);
+
+  entries.sort((a,b) => d3.descending(a[1], b[1]));
+  const ordered = entries.slice(0, topN);
+  const count = ordered.length;
+
+  if (count === 0) {
+    g.selectAll("rect.bar").remove();
+    g.selectAll("text.y-label").remove();
+    return;
+  }
+
+  /* bottom-up fill */
+  const startSlot = topN - count;
+  const slotPositions = d3.range(count).map(i => {
+    const slotIndex = startSlot + i;
+    return slotIndex * slotHeight + (slotHeight - barHeight)/2;
+  });
+
+  const fastSet = new Set();
+  if (prevFrameCounts) {
+    ordered.forEach(([cat,val]) => {
+      const prevVal = prevFrameCounts[cat] || 0;
+      if ((val - prevVal) >= fastThreshold) fastSet.add(cat);
+    });
+  }
+
+  const bars = g.selectAll("rect.bar").data(ordered, d => d[0]);
+
+  bars.enter()
+    .append("rect")
+    .attr("class", "bar")
+    .attr("x", 0)
+    .attr("y", (d,i) => slotPositions[i])
+    .attr("height", barHeight)
+    .attr("width", d => xScale(d[1]))
+    .attr("fill", d => colorScale(d[0]))
+    .merge(bars)
+    .attr("y", (d,i) => slotPositions[i])
+    .attr("width", d => xScale(d[1]))
+    .attr("fill", d => colorScale(d[0]));
+
+  bars.exit().remove();
+
+  const labels = g.selectAll("text.y-label").data(ordered, d => d[0]);
+
+  const labelsEnter = labels.enter()
+    .append("text")
+    .attr("class", "y-label")
+    .attr("x", -6)
+    .attr("y", (d,i) => slotPositions[i] + barHeight/2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", "end")
+    .attr("alignment-baseline", "middle")
+    .attr("fill", "#eee")
+    .attr("font-size", 10);
+
+  const merged = labelsEnter.merge(labels)
+    .attr("y", (d,i) => slotPositions[i] + barHeight/2)
+    .text(d => {
+      const cat = d[0];
+      const base = labelFn(cat);
+      const truncated = truncateLabel(base, MAX_LABEL_CHARS);
+      return (fastSet.has(cat) ? "↑ " : "") + truncated;
+    })
+    .attr("font-weight", d => fastSet.has(d[0]) ? "bold" : "normal");
+
+  labels.exit().remove();
+
+  /* tooltip for full text if requested */
+  if (typeof fullLabelFn === "function") {
+    merged.each(function(d) {
+      const cat = d[0];
+      const fullText = fullLabelFn(cat);
+      const sel = d3.select(this);
+      let t = sel.select("title");
+      if (!fullText) { if (!t.empty()) t.remove(); return; }
+      if (t.empty()) t = sel.append("title");
+      t.text(fullText);
+    });
+  } else {
+    merged.select("title").remove();
+  }
+}
+
+function labelDefault(cat) { return cleanLabelText(cat); }
+function labelDecade(cat)  { return cleanLabelText(cat); }
+
+/* ===================== Controls ===================== */
+function stepSlider(delta) {
+  const min = Number(frameSlider.min);
+  const max = Number(frameSlider.max);
+  const cur = Number(frameSlider.value) || 0;
+  const next = Math.max(min, Math.min(max, cur + delta));
+  if (next !== cur) {
+    frameSlider.value = String(next);
+    frameSlider.dispatchEvent(new Event("input"));
+  }
+}
+
+function initKeyboardStepping() {
+  window.addEventListener("keydown", (e) => {
+    const tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+    if (e.key === "ArrowLeft") stepSlider(-1);
+    if (e.key === "ArrowRight") stepSlider(1);
+    if (e.key === "PageUp") stepSlider(-10);
+    if (e.key === "PageDown") stepSlider(10);
+  });
+}
+
+function initSwipeStepping() {
+  let touchStartX = null;
+
+  document.addEventListener("touchstart", (e) => {
+    if (!e.touches || !e.touches.length) return;
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+
+  document.addEventListener("touchend", (e) => {
+    if (touchStartX === null) return;
+    const endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : null;
+    if (endX === null) return;
+
+    const dx = endX - touchStartX;
+    touchStartX = null;
+
+    if (Math.abs(dx) < 40) return;
+    if (dx > 0) stepSlider(-1);
+    else stepSlider(1);
+  }, { passive: true });
+}
+
+function initCellToggles() {
+  document.querySelectorAll(".cell").forEach(cell => {
+    if (cell.classList.contains("spacer")) return;
+
+    const btn = cell.querySelector(".cell-toggle");
+    const body = cell.querySelector(".cell-body");
+    if (!btn || !body) return;
+
+    const initiallyHidden = body.style.display === "none";
+    cell.classList.toggle("is-collapsed", initiallyHidden);
+    cell.classList.toggle("is-expanded", !initiallyHidden);
+    btn.textContent = initiallyHidden ? "Show" : "Hide";
+
+    btn.addEventListener("click", () => {
+      const isHidden = body.style.display === "none";
+      body.style.display = isHidden ? "" : "none";
+
+      cell.classList.toggle("is-collapsed", !isHidden);
+      cell.classList.toggle("is-expanded", isHidden);
+      btn.textContent = isHidden ? "Hide" : "Show";
+
+      if (initialized) rebuildChartsAndRedraw();
+    });
+  });
+}
+
+function initDragAndDrop() {
+  const dashboard = document.getElementById("dashboard");
+  const finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  if (!finePointer) return;
+
+  let dragSrcEl = null;
+
+  dashboard.querySelectorAll(".draggable-cell").forEach(cell => {
+    cell.setAttribute("draggable", "true");
+
+    cell.addEventListener("dragstart", e => {
+      dragSrcEl = cell;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", "");
+      cell.classList.add("dragging");
+    });
+
+    cell.addEventListener("dragend", () => cell.classList.remove("dragging"));
+
+    cell.addEventListener("dragover", e => {
+      e.preventDefault();
+      if (!dragSrcEl || dragSrcEl === cell) return;
+
+      const rect = cell.getBoundingClientRect();
+      const offset = e.clientY - rect.top;
+      const midpoint = rect.height / 2;
+      if (offset > midpoint) dashboard.insertBefore(dragSrcEl, cell.nextSibling);
+      else dashboard.insertBefore(dragSrcEl, cell);
+    });
+  });
+}
+
+function initResizeHandler() {
+  let t = null;
+  window.addEventListener("resize", () => {
+    if (!initialized) return;
+    clearTimeout(t);
+    t = setTimeout(() => rebuildChartsAndRedraw(), 80);
+  });
+}
+
+function rebuildChartsAndRedraw() {
+  metrics.forEach(metric => {
+    const state = metricState[metric.id];
+    const svgEl = document.getElementById(metric.svgId);
+    if (!state || !svgEl) return;
+    state.chart = setupChart(svgEl, metric.topN, state.globalMax, state.allowed);
+  });
+  updateDashboard(currentFrameIndex);
+}
+
+/* ===================== Main ===================== */
+async function init() {
+  initCellToggles();
+  initDragAndDrop();
+  initKeyboardStepping();
+  initSwipeStepping();
+  initResizeHandler();
+  try {
+    const name = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.countdownName) ? APP_CONFIG.countdownName : "WXPN Countdown";
+    const h = document.getElementById("page-title");
+    if (h) h.textContent = name;
+    document.title = name;
+  } catch(e) {}
+
+try {
+    const resp = await fetch(DATA_ENDPOINT);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!Array.isArray(data)) throw new Error("Data endpoint must return an array");
+
+    const raw = data.map(d => ({ ...d }));
+    raw.forEach(row => {
+      row.rank = row.rank != null ? Number(row.rank) : null;
+
+      //row.genres = parseGenres(row.genre);
+      //row.genres = Array.isArray(row.genres) ? row.genres : [];
+      row.genres = Array.isArray(row.genres) ? row.genres :
+           (Array.isArray(row.genre_tokens_wxpn) ? row.genre_tokens_wxpn :
+           parseGenres(row.genre_repaired_php ?? row.genre));
+
+      row.originalYear_parsed = parseYearFromString(row.originalYear);
+      row.coverYear_parsed = parseYearFromString(row.releaseDate);
+
+      row.originalDecade = computeDecade(row.originalYear_parsed);
+      row.coverDecade = computeDecade(row.coverYear_parsed);
+
+      const song = row.song || null;
+      const oa = row.originalArtist || null;
+      row.originalSongCombo = (song && oa) ? `${song} — ${oa}` : null;
+    });
+
+    const filtered = raw.filter(row => {
+      if (row.rank == null || isNaN(row.rank)) return false;
+      const hasArtist = row.artist != null && row.artist !== "";
+      return hasArtist;
+    });
+
+    if (!filtered.length) {
+      frameLabel.textContent = "0";
+      return;
+    }
+
+    // ranks descending: APP_CONFIG.rankMax -> 1
+    sortedSongs = filtered.slice().sort((a,b) => d3.descending(a.rank, b.rank));
+    frameRanks = sortedSongs.map(r => r.rank);
+    rankToRow = {};
+    rankToFrameIndex = {};
+    sortedSongs.forEach(function(r,i){ if (r && r.rank != null) { var rk = Number(r.rank); rankToRow[rk] = r; rankToFrameIndex[rk] = i; } });
+
+    // -------------------------------
+    // Multi-countdown metric registry
+    // -------------------------------
+    const METRIC_REGISTRY = {
+      // Cover metrics
+      orig_artists: { id:"origArtists",  title:"Most Covered Original Artists",
+        categoryFn: r => (r.originalArtist ? [r.originalArtist] : []),
+        minFinal: MIN_COUNT_ORIG_ARTIST, topN: TOP_N_ARTISTS, labelFn: labelDefault, fullLabelFn: null
+      },
+      cover_artists:{ id:"coverArtists", title:"Most Frequent Cover Artists",
+        categoryFn: r => (r.artist ? [r.artist] : []),
+        minFinal: MIN_COUNT_COVER_ARTIST, topN: TOP_N_ARTISTS, labelFn: labelDefault, fullLabelFn: null
+      },
+      orig_years:   { id:"origYears", title:"Most Covered Original Years",
+        categoryFn: r => (r.originalYear_parsed != null ? [String(r.originalYear_parsed)] : []),
+        minFinal: MIN_COUNT_ORIG_YEAR, topN: TOP_N_YEARS, labelFn: labelDefault, fullLabelFn: null
+      },
+      orig_decades: { id:"origDecades", title:"Most Covered Original Decades",
+        categoryFn: r => (r.originalDecade ? [r.originalDecade] : []),
+        minFinal: MIN_COUNT_DECADE, topN: TOP_N_DECADES, labelFn: labelDecade, fullLabelFn: null
+      },
+      cover_years:  { id:"coverYears", title:"Most Frequent Cover Years",
+        categoryFn: r => (r.coverYear_parsed != null ? [String(r.coverYear_parsed)] : []),
+        minFinal: MIN_COUNT_COVER_YEAR, topN: TOP_N_YEARS, labelFn: labelDefault, fullLabelFn: null
+      },
+      orig_songs:   { id:"origSongs", title:"Most Covered Original Songs",
+        categoryFn: r => (r.originalSongCombo ? [r.originalSongCombo] : []),
+        minFinal: MIN_COUNT_ORIG_SONG, topN: TOP_N_ORIG_SONGS, labelFn: labelDefault, fullLabelFn: (cat)=>cleanLabelText(cat)
+      },
+
+      // Standard metrics (songs are still the unit)
+      artists: { id:"artists", title:"Most Frequent Artists",
+        categoryFn: r => (r.artist ? [r.artist] : []),
+        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
+      },
+      albums:  { id:"albums", title:"Most Frequent Albums",
+        categoryFn: r => (r.album ? [r.album] : []),
+        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
+      },
+      years:   { id:"years", title:"Most Frequent Years",
+        categoryFn: r => (r.coverYear_parsed != null ? [String(r.coverYear_parsed)] : []),
+        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
+      },
+      decades: { id:"decades", title:"Most Frequent Decades",
+        categoryFn: r => (r.coverDecade ? [r.coverDecade] : []),
+        minFinal: 2, topN: 10, labelFn: labelDecade, fullLabelFn: null
+      },
+
+      // Shared
+      genres:  { id:"genres", title:"Most Represented Genres",
+        categoryFn: r => (r.genres || []),
+        minFinal: MIN_COUNT_GENRE, topN: TOP_N_GENRES, labelFn: labelDefault, fullLabelFn: null
+      }
+    };
+
+    function selectedMetricKeys(){
+      if (typeof APP_CONFIG !== "undefined" && APP_CONFIG && Array.isArray(APP_CONFIG.metrics) && APP_CONFIG.metrics.length){
+        return APP_CONFIG.metrics.slice();
+      }
+      const mode = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
+      if (mode === "standard") return ["artists","albums","years","decades","genres"];
+      return ["orig_artists","cover_artists","orig_years","orig_decades","cover_years","orig_songs","genres"];
+    }
+
+    const metricKeys = selectedMetricKeys();
+    const slotSvgIds = ["chart-slot-1","chart-slot-2","chart-slot-3","chart-slot-4","chart-slot-5","chart-slot-6","chart-slot-7"];
+
+    metrics = metricKeys.map((key, idx) => {
+      const def = METRIC_REGISTRY[key];
+      if (!def) return null;
+      return { ...def, svgId: slotSvgIds[idx] };
+    }).filter(Boolean);
+
+    // Apply titles + hide unused chart cells
+    const chartCellIds = ["cell1","cell3","cell4","cell5","cell6","cell7","cell8"];
+    chartCellIds.forEach((cellId, i) => {
+      const cell = document.getElementById(cellId);
+      if (!cell) return;
+      if (i < metrics.length) {
+        cell.style.display = "";
+        const titleEl = cell.querySelector(".cell-title");
+        if (titleEl) titleEl.textContent = metrics[i].title || "Chart";
+      } else {
+        cell.style.display = "none";
+      }
+    });
+
+    // Last 10 column 4 label
+    try {
+      const mode2 = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
+      const th = document.getElementById("next-col-4");
+      if (th) th.textContent = (mode2 === "cover") ? "Original" : "Album";
+    } catch(e) {}
+
+
+    metricState = {};
+    metrics.forEach(metric => {
+      const { frames, allowed } = buildMetricTimeSeries(sortedSongs, metric.categoryFn, metric.minFinal);
+      const globalMax = computeGlobalMax(frames, MIN_DISPLAY_COUNT);
+      const svgEl = document.getElementById(metric.svgId);
+      const chart = svgEl ? setupChart(svgEl, metric.topN, globalMax, allowed) : null;
+
+      metricState[metric.id] = {
+        frames,
+        allowed,
+        globalMax,
+        chart,
+        labelFn: metric.labelFn,
+        fullLabelFn: metric.fullLabelFn
+      };
+    });
+
+    const numFrames = sortedSongs.length;
+    frameSlider.min = 0;
+    frameSlider.max = numFrames - 1;
+    frameSlider.value = 0;
+    currentFrameIndex = 0;
+
+    frameSlider.addEventListener("input", e => {
+      const idx = Number(e.target.value) || 0;
+      updateDashboard(idx);
+    });
+
+    // Clickable rows in Last 10 Songs: jump to that rank
+    if (recentSongsBody) {
+      recentSongsBody.addEventListener("click", function(ev) {
+        var tr = ev.target && ev.target.closest ? ev.target.closest("tr") : null;
+        if (!tr) return;
+        var r = Number(tr.getAttribute("data-rank") || 0);
+        if (!r || isNaN(r)) return;
+        var idx2 = (rankToFrameIndex && (r in rankToFrameIndex)) ? rankToFrameIndex[r] : null;
+        if (idx2 === null || idx2 === undefined) return;
+        frameSlider.value = String(idx2);
+        updateDashboard(idx2);
+      });
+    }
+
+
+    initialized = true;
+    updateDashboard(0);
+
+  } catch (err) {
+    console.error(err);
+    frameLabel.textContent = "0";
+  }
+}
+
+function updateDashboard(frameIndex) {
+  if (!sortedSongs.length) return;
+
+  const numFrames = sortedSongs.length;
+  currentFrameIndex = Math.max(0, Math.min(numFrames - 1, frameIndex));
+
+  const rank = frameRanks[currentFrameIndex];
+  frameLabel.textContent = rank != null ? String(rank) : "";
+
+  metrics.forEach(metric => {
+    const state = metricState[metric.id];
+    if (!state || !state.chart) return;
+
+    const frameCounts = state.frames[currentFrameIndex] || {};
+    const prevIndex = Math.max(0, currentFrameIndex - MOMENTUM_WINDOW);
+    const prevCounts = state.frames[prevIndex] || {};
+
+    updateChart(
+      state.chart,
+      frameCounts,
+      prevCounts,
+      state.allowed,
+      state.labelFn,
+      state.fullLabelFn,
+      { minDisplayCount: MIN_DISPLAY_COUNT, fastRiserThreshold: FAST_RISER_THRESHOLD }
+    );
+  });
+
+  const row = sortedSongs[currentFrameIndex];
+  const imgUrl = row.albumArt || "";
+
+  if (imgUrl) {
+    currentAlbumArt.classList.remove("no-art");
+    currentAlbumArt.src = imgUrl;
+    currentAlbumArt.alt = `${cleanLabelText(row.song || "")} – ${cleanLabelText(row.artist || "")}`;
+  } else {
+    currentAlbumArt.classList.add("no-art");
+    currentAlbumArt.alt = "";
+  }
+
+  const title = cleanLabelText(row.song || "(Unknown song)");
+  const artist = cleanLabelText(row.artist || "(Unknown cover artist)");
+  const origArtist = cleanLabelText(row.originalArtist || "(Unknown original artist)");
+  const origYear = row.originalYear_parsed ? String(row.originalYear_parsed) : "Unknown";
+  const coverYear = row.coverYear_parsed ? String(row.coverYear_parsed) : "Unknown";
+
+  currentSongTitle.textContent = title;
+  const mode = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
+  const hasOrig = (row.originalArtist && String(row.originalArtist).trim()) || (row.originalYear_parsed != null);
+  if (mode === "cover" && hasOrig) {
+    currentSongArtist.textContent = `${artist} (covering ${origArtist})`;
+    currentSongMeta.textContent = `Rank ${row.rank} · Original year: ${origYear} · Cover year: ${coverYear}`;
+  } else {
+    currentSongArtist.textContent = `${artist}`;
+    currentSongMeta.textContent = `Rank ${row.rank} · Year: ${coverYear}`;
+  }
+
+  // Last 15 cell: show upcoming window starting at current rank (ascending)
+  renderUpcomingFromCurrent(row.rank);
+
+  // Player: update UI only (no provider calls until Play)
+  if (window.Race2Player && typeof window.Race2Player.update === "function") window.Race2Player.update(row);
+
+}
+
+/* Boot */
+init();
+</script>
+<script>
+
+/* ===================== Mobile defaults ===================== */
+function applyMobileDefaults() {
+  var w = window.innerWidth || 9999;
+  if (w > 650) return;
+
+  // Show only Current Song (cell2) and Last 10 Songs (cell9) by default
+  var show = {"cell2": true, "cell9": true};
+  var cells = document.querySelectorAll(".cell");
+  for (var i=0; i<cells.length; i++) {
+    var cell = cells[i];
+    if (!cell || !cell.id) continue;
+    var body = cell.querySelector(".cell-body");
+    var btn = cell.querySelector(".cell-toggle");
+    if (!body) continue;
+
+    if (show[cell.id]) {
+      body.classList.remove("is-hidden");
+      if (btn) btn.textContent = "Hide";
+    } else {
+      cell.classList.add("is-collapsed");
+      if (btn) btn.textContent = "Show";
+    }
+  }
+}
+window.addEventListener("load", applyMobileDefaults);
+
+/* ===================== Device class (phone vs tablet) ===================== */
+function applyResponsiveDeviceClass() {
+  var w = window.innerWidth || 9999;
+  var h = window.innerHeight || 9999;
+  var minSide = Math.min(w, h);
+  var body = document.body;
+  if (!body) return;
+
+  // Treat as phone if the smaller side is < 520px
+  var isPhone = (minSide < 520);
+  body.classList.toggle("is-phone", isPhone);
+
+  // Landscape if width > height
+  var isLandscape = (w > h);
+  body.classList.toggle("is-landscape", isLandscape);
+}
+window.addEventListener("load", applyResponsiveDeviceClass);
+window.addEventListener("resize", applyResponsiveDeviceClass);
+
+
+</script>
+</body>
+</html>
