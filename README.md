@@ -1,7 +1,7 @@
-# WXPN 885 Greatest Cover Songs – Countdown Dashboard
+# WXPN 885 Greatest Cover Songs – Countdown Dashboards
 
 This repository contains a **single‑page, self‑contained dashboard app** created for exploring the  
-**WXPN 885 Greatest Cover Songs** countdown. Additional dashboards have been added for other ***WXPN Countdowns**
+**WXPN 885 Greatest Cover Songs** countdown. Additional dashboards have been added for other **WXPN Countdowns**
 
 The dashboard is designed to be:
 - fast
@@ -16,6 +16,11 @@ The dashboard is designed to be:
 Each app is a **single HTML file** that can run:
 
 - on **GitHub Pages**
+
+```
+https://ericknappe.github.io/countdowns
+```
+
 - via any simple static server
 - locally (with a local web server, not `file://`)
 
