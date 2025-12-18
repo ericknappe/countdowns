@@ -8,7 +8,7 @@
    ```
 
 2. **Copy the baseline dashboard**
-   - Copy `multi-countdown_fixed3.html`
+   - Copy an existing, working countdown dashboard (for example, `greatest-songs-of-all-time/index.html`)
    - Rename it to:
      ```
      <new-countdown-slug>/index.html
@@ -25,7 +25,8 @@
      - `countdownName`
      - `dataFile` (relative path)
      - `mode` (`cover` or `standard`)
-     - `metrics` (ordered list)
+     - `metrics` (ordered list of enabled charts)
+     - `rankMax` (optional override; otherwise derived from data)
 
 5. **Add link to root landing page**
    - Edit `/index.html`
@@ -40,4 +41,4 @@
    http://localhost:8000/<new-countdown-slug>/
    ```
 
-That’s it. No build step, no parameters, no shared state.
+That’s it. No build step, no query parameters, no shared state.

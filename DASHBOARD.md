@@ -50,9 +50,9 @@ http://localhost:8000/greatest-cover-songs/
 ## Core Interaction Model
 
 ### Countdown Navigation
-- A slider moves through the countdown from **rank N → rank 1**
+- A slider moves through the countdown from higher ranks toward #1
 - The default direction emphasizes discovery, starting with lesser-known items
-- The **“Next 10”** panel allows quick jumping to nearby ranks
+- The **“Last 10”** panel allows quick jumping to nearby ranks
 
 ### Current Item Panel
 - Displays album art (dataset-provided only)
@@ -109,7 +109,7 @@ The dashboard layout adapts automatically:
 - Phone portrait: 1 column
 
 On phones:
-- **Current Song** and **Next 10** panels are open by default
+- **Current Song** and **Last 10** panels are open by default
 - All other panels start collapsed but can be expanded
 
 ---
@@ -146,13 +146,15 @@ Minimal example:
 - ensures chart keys are string-stable (prevents empty charts)
 
 Legacy fields are supported only as fallback for older datasets.
+New datasets should use canonical fields (for example, `genres[]`) and avoid PHP-serialized values.
 
 ---
 
 ## Configuration & Reuse
 
-Dashboard behavior is controlled via a small configuration object
-inside each countdown’s `index.html`.
+Dashboard behavior is controlled via a small configuration object inside each countdown’s `index.html`.
+
+Each countdown page defines its own configuration and data source, allowing multiple dashboards to coexist within a single repository.
 
 Examples of configurable behavior:
 - countdown name
@@ -184,5 +186,4 @@ This makes the engine reusable for:
 ## Status
 
 - ✅ Stable baseline
-- 🔒 Changes should be intentional and scoped
 - 🚀 Ready for public use and future adaptations
