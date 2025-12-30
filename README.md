@@ -9,7 +9,7 @@ multiple countdowns, each hosted as its own dashboard under a shared structure.
 
 These dashboards are designed to be:
 - fast
-- readable on all devices
+- readable on a broad range of devices
 - safe for embedded media rate limits
 - easy to reuse for future countdown variants
 
@@ -58,7 +58,7 @@ http://localhost:8000/index.html
 - Song title and artist
 - Year information
 - For cover countdowns: original artist and original year
-- External links (Spotify / Deezer / Bandcamp when available)
+- External links (Spotify / Deezer / Apple Music / Deezer when available)
 
 ### Embedded Player (Rate-Limit Safe)
 - Player iframe is created only when **Play** is pressed
@@ -68,24 +68,59 @@ http://localhost:8000/index.html
 
 ### Charts & Metrics
 SVG-based horizontal bar charts rendered with plain JavaScript  
-(no external charting libraries):
+(no external charting libraries).
 
+Standard countdowns typically include:
 - Artists
 - Albums
 - Years
 - Decades
 - Genres
 
-Cover-specific countdowns may also include:
-- Original artists
-- Original years
-- Original decades
-- Original songs
+Cover countdowns may also include:
+- Most covered original artists
+- Most frequent cover artists
+- Original years / decades
+- Cover years
+- Most covered original songs
 
 Charts:
 - adapt to screen size
 - remain readable in one-column mobile layouts
 - allocate label space proportionally for clarity
+
+### Interactive Chart-Click Filtering (Desktop/Tablet Only)
+On supported dashboards, **click a bar (or label)** in eligible charts to filter the song list panel.
+
+- **Enabled only when the layout is 3 columns** (desktop/tablet).  
+  Disabled on phone layouts (including phone landscape in 1–2 column mode).
+- Clicking a chart value sets an *active filter* and populates the song list panel with **all matches** (no “last 10” limit).
+- The slider does **not** jump when a filter is applied.
+- Clear the filter via the **Clear** button or **Esc**.
+
+Filtering is configured per countdown via:
+
+```js
+APP_CONFIG.interactiveFilters = {
+  enabled: true,
+  filterableCharts: ["genres","origArtists","coverArtists","origYears"] // cover mode example
+};
+```
+
+Supported filter types by mode:
+
+**Cover mode**
+- `genres` → genre
+- `origArtists` → original artist
+- `coverArtists` → cover artist
+- `origYears` → original year
+
+**Standard mode**
+- `genres` → genre
+- `artists` → artist
+- `years` → year
+
+Charts that are not present for a given countdown are ignored.
 
 ### Responsive Layout
 - Desktop: 3 columns
@@ -115,13 +150,12 @@ Minimal example:
   "albumArt": "https://…",
   "originalArtist": "Bob Dylan",
   "originalYear": "1967",
-  "genre": "a:4:{i:0;s:16:"psychedelic rock";…}",
+  "genres": ["psychedelic rock", "classic rock", …],
   "media": {
     "spotify": { "embed_src": "…" },
-    "deezer": { "embed_src": "…" }
+    "deezer": { "embed_src": "…" },
+    "applemusic": { "previewUrl": "…", "url": "…" }
   }
-  "genres": ["psychedelic rock", "classic rock", …],
-  …
 }
 ```
 
@@ -129,24 +163,40 @@ Legacy datasets may include PHP-serialized genre fields; these are supported as 
 
 ### Normalization handled by the app
 - trims stray whitespace and CR/LF
-- unescapes PHP-style strings (You\'ve → You've)
+- unescapes legacy escaped text (e.g., `You\'ve` → `You've`)
 - parses years robustly (strings or numbers)
 - derives decades consistently
-- treats genres[] as the canonical genre source
+- treats `genres[]` as the canonical genre source
 - ensures chart keys are string-stable (prevents empty charts)
 
 ---
 
 ## Reuse & Future Variants
 
-This dashboard is intentionally structured so it can be reused for:
-
-- non‑cover countdowns
-- alternate rankings
-- fewer or different chart metrics
-
 Dashboard behavior is controlled via a small configuration object inside each
-countdown’s index.html, rather than hard-coded DOM assumptions.
+countdown’s `index.html` (e.g., `APP_CONFIG` and `APP_CONFIG.mode`), rather than
+hard-coded DOM assumptions.
+
+---
+
+## Testing (Optional)
+
+Automated UI tests use **Playwright**.
+
+Typical commands:
+
+```bash
+npm ci
+npm test
+```
+
+To update screenshots:
+
+```bash
+npm run test:update
+```
+
+Artifacts (screenshots, traces) can be uploaded in CI (see workflow under `.github/workflows/` if present).
 
 ---
 

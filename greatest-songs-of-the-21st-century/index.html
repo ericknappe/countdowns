@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>WXPN Countdown</title>
+  <title>Countdown Dashboard</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -147,7 +147,7 @@
       text-overflow: ellipsis;
       text-align: center;
     }
-    .cell-toggle {
+    .cell-toggle, .filter-clear-btn {
       font-size: 11px;
       padding: 2px 6px;
       border-radius: 999px;
@@ -156,7 +156,23 @@
       color: #eee;
       cursor: pointer;
     }
-    .cell-toggle:hover { background: #333; }
+  .playlist-btn {
+    margin-left: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    cursor: pointer;
+  }
+  .playlist-btn:hover { background: rgba(255,255,255,0.14); }
+  .playlist-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+    .cell-toggle:hover, .filter-clear-btn:hover { background: #333; }
 
     .cell-body {
       flex: 1;
@@ -245,6 +261,14 @@
     }
     .player-links a:hover { border-color: rgba(255,255,255,.28); }
 
+    .player-embed audio {
+      width: 100%;
+      border-radius: 10px;
+      margin-top: 8px;
+      border: 1px solid rgba(255,255,255,.28);
+      background: #0f0f0f;
+    }
+
     .player-embed iframe {
       width: 100%;
       border: 0;
@@ -314,6 +338,23 @@
 
     /* ===== Recent songs list ===== */
     .recent-songs { width:100%; overflow:auto; max-height:100%; padding: 6px 10px 10px; box-sizing: border-box; }
+  /* Results table sizing: keep table constrained inside the scroll container */
+  .recent-songs {
+    overflow: auto;
+    flex: 1 1 auto;
+    min-height: 0; /* critical for flex children to allow scrolling */
+  }
+  table.recent-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  table.recent-table th, table.recent-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
     .recent-table { width:100%; border-collapse: collapse; font-size: 11px; }
     .recent-table thead th {
       position: sticky; top: 0;
@@ -343,26 +384,63 @@
       white-space: nowrap;
     }
 
-    /* Last 10 Songs (cell9) tweaks */
-    #cell9 .cell-body { padding-left: 14px; padding-right: 14px; }
-    #cell9 .cell-header { padding-left: 14px; padding-right: 14px; }
-    #cell9 table { font-size: 12px; }
-    #cell9 th { font-size: 11px; opacity: 0.9; }
-    #cell9 td { padding-top: 6px; padding-bottom: 6px; }
+    
+    .filter-hint{
+      font-size: 11px;
+      color: #bdbdbd;
+      padding: 6px 10px 6px;
+      border: 1px dashed rgba(255,255,255,.18);
+      background: rgba(255,255,255,.03);
+      border-radius: 10px;
+      margin: 6px 14px 0;
+      line-height: 1.2;
+    }
+    #panel-results .cell-body{ overflow:hidden; }
+    #panel-results .recent-songs{ flex: 1; min-height: 0; overflow: auto; max-height: none; padding-top: 8px; }
+
+    /* Results panel tweaks */
+    #panel-results .cell-body { padding-left: 14px; padding-right: 14px; }
+    #panel-results .cell-header { padding-left: 14px; padding-right: 14px; }
+    
+    /* Results panel: two-line header so title stays readable */
+    #panel-results .results-header { display: flex; flex-direction: column; gap: 4px; }
+    #panel-results .cell-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #panel-results .results-actions { display: flex; align-items: center; gap: 8px; }
+    #panel-results .results-export-row { margin-top: 2px; }
+    #panel-results .results-export-spacer { flex: 1; }
+    #panel-results .results-export-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; }
+
+    /* Make export buttons compact */
+    #panel-results .playlist-btn {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 10px;
+      margin-left: 0;
+    }
+
+    /* Keep table column headers visible while scrolling */
+    #panel-results .recent-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: rgba(24,24,24,0.98);
+    }
+
+    #panel-results table { font-size: 12px; }
+    #panel-results th { font-size: 11px; opacity: 0.9; }
+    #panel-results td { padding-top: 6px; padding-bottom: 6px; }
 
   
     /* iPad / mobile responsive grid presets (target #dashboard) */
-    /* iPhone and small devices: 1 column */
+    /* Small devices: 1 column */
     @media (max-width: 700px) {
-      #dashboard { grid-template-columns: repeat(2, 1fr); }
-      .floating-player{
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        width: auto;
-        max-height: 60vh;
-      }
+      #dashboard { grid-template-columns: 1fr; }
     }
+
+    /* Floating player: tighter on small screens */
+    @media (max-width: 600px) {
+
+
     /* iPad portrait: 2 columns */
     @media (max-width: 1100px) and (orientation: portrait) {
       #dashboard { grid-template-columns: repeat(2, 1fr); }
@@ -371,14 +449,7 @@
     @media (max-width: 1400px) and (orientation: landscape) {
       #dashboard { grid-template-columns: repeat(3, 1fr); }
     }
-      .floating-player{
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        width: auto;
-        max-height: 60vh;
-      }
-    }
+
 
   
       
@@ -403,19 +474,43 @@
   #dashboard { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Tighten Last 10 Songs in 2x5 layouts */
+/* Tighten Next 10 Songs in 2x5 layouts */
 @media (min-width: 600px) and (max-width: 1200px) {
-  #cell9 .recent-table { font-size: 11px; }
-  #cell9 td { padding-top: 4px; padding-bottom: 4px; }
-  #cell9 .cell-body { max-height: 240px; overflow-y: auto; padding-left: 10px; padding-right: 10px; }
+  #panel-results .recent-table { font-size: 11px; }
+  #panel-results td { padding-top: 4px; padding-bottom: 4px; }
+  #panel-results .cell-body { max-height: 240px; overflow-y: auto; padding-left: 10px; padding-right: 10px; }
 }
+
+
+    
+    /* Keep scrolling confined to the list body (not the whole panel), so rows never slide under the header */
+    #panel-results .cell-body { overflow: hidden !important; max-height: none !important; }
+    #panel-results .recent-songs { flex: 1; min-height: 0; overflow: auto !important; max-height: none !important; }
+
+    /* ===== Interactive chart click filtering ===== */
+    .chart-clickable { cursor: pointer; }
+    .drag-handle { cursor: move; }
+    @media (pointer: coarse) { .drag-handle { cursor: default; } }
+
+    /* Drag should start from headers only (not chart bodies) */
+    .cell { cursor: default; }
+
+
+    .std-hidden { display: none !important; }
+
+  /* Ensure flex children can actually shrink (prevents tables from escaping their panels) */
+  .cell { min-height: 0; }
+  .cell-body { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  /* Results panel: body must be a column flex container so the scroll area is constrained */
+  #panel-results .cell-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  #panel-results .recent-songs { flex: 1 1 auto; min-height: 0; }
 
 </style>
 </head>
 
 <body>
   <header>
-    <h1 id="page-title">WXPN Countdown</h1>
+    <h1 id="dashboard-title">Countdown Dashboard</h1>
   </header>
 
   <div id="controls">
@@ -428,7 +523,7 @@
 
   <div id="dashboard">
     <!-- Row 1 -->
-    <div class="cell draggable-cell is-expanded" id="cell2">
+    <div class="cell draggable-cell is-expanded" id="panel-current-song">
       <div class="cell-header">
         <span class="cell-title">Current Song</span>
         <button class="cell-toggle" type="button">Hide</button>
@@ -449,68 +544,81 @@
         </div>
       </div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell9">
-      <div class="cell-header">
-        <span class="cell-title">Last 10 Songs</span>
-        <button class="cell-toggle" type="button">Hide</button>
+<div class="cell draggable-cell is-expanded" id="panel-results">
+      <div class="cell-header results-header">
+        <div class="cell-header-row">
+          <span class="cell-title" id="results-title">Last 10 Songs</span>
+          <div class="results-actions">
+            <button id="filter-clear-btn" class="filter-clear-btn hidden" type="button">Clear</button>
+            <button class="cell-toggle" type="button">Hide</button>
+          </div>
+        </div>
+        <div class="cell-header-row results-export-row">
+          <div class="results-export-spacer"></div>
+          <div class="results-export-actions">
+            <button id="playlist-spotify-btn" class="playlist-btn hidden" type="button" title="Download an .m3u file with Spotify track links">Spotify links (M3U)</button>
+            <button id="playlist-apple-btn" class="playlist-btn hidden" type="button" title="Download a .txt file of Apple Music links (not an auto-import playlist)">Apple links (text)</button>
+          </div>
+        </div>
       </div>
       <div class="cell-body">
+        
         <div class="recent-songs">
           <table class="recent-table">
-            <thead><tr><th>Rank</th><th>Song</th><th>Artist</th><th id="next-col-4">Original</th></tr></thead>
+            <thead><tr><th>Rank</th><th>Song</th><th>Artist</th><th>Original</th></tr></thead>
             <tbody id="recent-songs-body"></tbody>
           </table>
         </div>
       </div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell1">
+<div class="cell draggable-cell is-expanded" id="panel-artists">
       <div class="cell-header">
         <span class="cell-title">Most Covered Original Artists</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-1"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-orig-artists"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell3">
+<div class="cell draggable-cell is-expanded" id="panel-genres">
       <div class="cell-header">
         <span class="cell-title">Most Represented Genres</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-2"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-genres"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell4">
+<div class="cell draggable-cell is-expanded" id="panel-albums">
       <div class="cell-header">
         <span class="cell-title">Most Covered Original Songs</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-3"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-orig-songs"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell5">
+<div class="cell draggable-cell is-expanded" id="panel-decades">
       <div class="cell-header">
         <span class="cell-title">Most Covered Original Decades</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-4"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-orig-decades"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell6">
+<div class="cell draggable-cell is-expanded" id="panel-cover-artists">
       <div class="cell-header">
         <span class="cell-title">Most Frequent Cover Artists</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-5"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-cover-artists"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell7">
+<div class="cell draggable-cell is-expanded" id="panel-years">
       <div class="cell-header">
         <span class="cell-title">Most Covered Original Years</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-6"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-orig-years"></svg></div>
     </div>
-<div class="cell draggable-cell is-expanded" id="cell8">
+<div class="cell draggable-cell is-expanded" id="panel-cover-years">
       <div class="cell-header">
         <span class="cell-title">Most Frequent Cover Years</span>
         <button class="cell-toggle" type="button">Hide</button>
       </div>
-      <div class="cell-body"><svg class="chart" id="chart-slot-7"></svg></div>
+      <div class="cell-body"><svg class="chart" id="chart-cover-years"></svg></div>
     </div>
   </div>
 
@@ -533,21 +641,32 @@ const APP_CONFIG = {
   countdownName: "WXPN 885 Greatest Songs Of The 21st Century",
   dataFile: "data/2024_885_runtime.json",
   rankMax: 885,
-  mode: "standard",
-  metrics: ["artists","years","albums","genres"]
-};    
+  mode: "standard", // "cover" or "standard"
+  metrics: [
+    "artists",
+    "years",
+    "albums",
+    "genres"
+  ],
+  // Optional interactive chart-click filtering. If missing, defaults per mode.
+  interactiveFilters: null
+};
+
 const urlParams = new URLSearchParams(window.location.search);
 const DATA_ENDPOINT =
   urlParams.get("data_endpoint") ||
   (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.dataFile);
 
+/* ===================== Constants ===================== */
 /* Option D thresholds */
+const MIN_COUNT_ALBUM = 2;
 const MIN_COUNT_ORIG_ARTIST = 2;
 const MIN_COUNT_COVER_ARTIST = 2;
 const MIN_COUNT_GENRE = 3;
 const MIN_COUNT_ORIG_SONG = 2;
 const MIN_COUNT_DECADE = 2;
 const MIN_COUNT_ORIG_YEAR = 2;
+const MIN_COUNT_ORIG_DECADE = 2;
 const MIN_COUNT_COVER_YEAR = 2;
 
 /* Display filtering */
@@ -568,7 +687,7 @@ const TOP_N_YEARS = 15;
 const MAX_LABEL_CHARS = 25;
 const BAR_HEIGHT_FACTOR = 1/3;
 
-/* Elements */
+/* ===================== Elements ===================== */
 const frameSlider = document.getElementById("frameSlider");
 const frameLabel  = document.getElementById("frameLabel");
 
@@ -576,9 +695,726 @@ const currentAlbumArt  = document.getElementById("current-album-art");
 const currentSongTitle = document.getElementById("current-song-title");
 const currentSongArtist= document.getElementById("current-song-artist");
 const currentSongMeta  = document.getElementById("current-song-meta");
-const recentSongsBody = document.getElementById("recent-songs-body");
-var rankToRow = {};
-var rankToFrameIndex = {};
+const resultsBody = document.getElementById("recent-songs-body");
+
+/* ===================== Album Art Update Controls ===================== */
+/* Reduce NS_BINDING_ABORTED churn by avoiding rapid src churn during slider scrubs. */
+let __albumArtTimer = null;
+
+let __isScrubbing = false; // true while the user is dragging the slider (input events)
+let __lastAlbumArtUrl = "";
+let __pendingAlbumArt = { url: "", alt: "", has: false };
+
+function setAlbumArtNow(url, altText) {
+  if (!currentAlbumArt) return;
+  const u = url || "";
+  if (!u) {
+    currentAlbumArt.classList.add("no-art");
+    currentAlbumArt.removeAttribute("src");
+    currentAlbumArt.alt = "";
+    __lastAlbumArtUrl = "";
+    return;
+  }
+  if (__lastAlbumArtUrl === u && currentAlbumArt.getAttribute("src") === u) {
+    if (altText) currentAlbumArt.alt = altText;
+    return;
+  }
+  __lastAlbumArtUrl = u;
+  currentAlbumArt.classList.remove("no-art");
+  currentAlbumArt.src = u;
+  currentAlbumArt.alt = altText || "";
+}
+
+function scheduleAlbumArtUpdate(url, altText, immediate) {
+  __pendingAlbumArt = { url: url || "", alt: altText || "", has: true };
+  if (__albumArtTimer) {
+    clearTimeout(__albumArtTimer);
+    __albumArtTimer = null;
+  }
+  if (immediate) {
+    setAlbumArtNow(__pendingAlbumArt.url, __pendingAlbumArt.alt);
+    __pendingAlbumArt.has = false;
+    return;
+  }
+  __albumArtTimer = setTimeout(function() {
+    __albumArtTimer = null;
+    if (!__pendingAlbumArt.has) return;
+    setAlbumArtNow(__pendingAlbumArt.url, __pendingAlbumArt.alt);
+    __pendingAlbumArt.has = false;
+  }, 120);
+}
+
+
+const PANEL = {
+  current: document.getElementById("panel-current-song"),
+  results: document.getElementById("panel-results"),
+  artists: document.getElementById("panel-artists"),
+  genres: document.getElementById("panel-genres"),
+  albums: document.getElementById("panel-albums"),
+  decades: document.getElementById("panel-decades"),
+  coverArtists: document.getElementById("panel-cover-artists"),
+  years: document.getElementById("panel-years"),
+  coverYears: document.getElementById("panel-cover-years")
+};
+
+/* ===================== Helpers ===================== */
+function truncateLabel(label, maxLen) {
+  if (!label) return "";
+  const s = String(label);
+  if (s.length <= maxLen) return s;
+  if (maxLen <= 1) return s.slice(0, maxLen);
+  return s.slice(0, maxLen - 1) + "…";
+}
+
+function normalizeTextField(value) {
+  // Normalize legacy escaped text from mixed pipelines.
+  // Examples handled:
+  //   (I Can\'t Get No) Satisfaction
+  //   Don\u2019t
+  //   \"Quoted\"
+  if (value === null || value === undefined) return value;
+
+  let s = String(value);
+
+  // Decode any literal \uXXXX sequences (double-escaped unicode)
+  s = s.replace(/\\u([0-9a-fA-F]{4})/g, function(_, hex) {
+    try {
+      return String.fromCharCode(parseInt(hex, 16));
+    } catch (e) {
+      return _;
+    }
+  });
+
+  // Remove backslashes that escape quotes
+  s = s.replace(/\\(?=['"'""])/g, "");
+
+  return s;
+}
+
+
+function cleanLabelText(s) {
+  const v = normalizeTextField(s);
+  return String(v || "");
+}
+
+function labelDefault(cat) { return cleanLabelText(cat); }
+
+/* ===================== ModeSpec ===================== */
+function getModeSpec(cfg) {
+  const mode = (cfg && cfg.mode) ? cfg.mode : "cover";
+
+  // Ensure interactiveFilters has a default per mode if omitted.
+  let interactiveFilters = (cfg && cfg.interactiveFilters) ? cfg.interactiveFilters : null;
+  if (!interactiveFilters) {
+    interactiveFilters = (mode === "standard")
+      ? { enabled: true, filterableCharts: ["genres","artists","years"] }
+      : { enabled: true, filterableCharts: ["genres","origArtists","coverArtists","origYears"] };
+  }
+
+  const filterTitleTemplates = {
+    genre: (v) => 'Songs in "' + v + '"',
+    origArtist: (v) => 'Songs of "' + v + '"',
+    coverArtist: (v) => 'Songs by "' + v + '"',
+    origYear: (v) => "Songs with original year " + v,
+    artist: (v) => 'Songs of "' + v + '"',
+    year: (v) => "Songs with original year " + v
+  };
+
+  const panelMapCover = {
+    current: { show: true, title: "Current Song" },
+    results: { show: true, title: "Last 10 Songs" },
+    artists: { show: true, title: "Most Covered Original Artists" },
+    genres: { show: true, title: "Most Represented Genres" },
+    albums: { show: true, title: "Most Covered Original Songs" },
+    decades: { show: true, title: "Most Covered Original Decades" },
+    coverArtists: { show: true, title: "Most Frequent Cover Artists" },
+    years: { show: true, title: "Most Covered Original Years" },
+    coverYears: { show: true, title: "Most Frequent Cover Years" }
+  };
+
+  const panelMapStandard = {
+    current: { show: true, title: "Current Song" },
+    results: { show: true, title: "Last 10 Songs" },
+    artists: { show: true, title: "Most Frequent Artists" },
+    genres: { show: true, title: "Most Represented Genres" },
+    albums: { show: true, title: "Most Frequent Albums" },
+    decades: { show: true, title: "Most Frequent Decades" },
+    years: { show: true, title: "Most Frequent Years" },
+    coverArtists: { show: false, title: "" },
+    coverYears: { show: false, title: "" }
+  };
+
+  const panelMap = (mode === "standard") ? panelMapStandard : panelMapCover;
+
+
+  // If cfg.metrics is provided, hide standard-mode panels that are not enabled.
+  // (Metrics filtering already prevents the chart render, but we also hide the panel to avoid empty shells.)
+  if (mode === "standard" && cfg && Array.isArray(cfg.metrics) && cfg.metrics.length) {
+    const metricSet = new Set(cfg.metrics);
+    function isEnabledMetric(id) {
+      const snake = String(id || "").replace(/([A-Z])/g, "_$1").toLowerCase();
+      return metricSet.has(id) || metricSet.has(snake);
+    }
+    ["artists","years","albums","decades","genres"].forEach(function(k){
+      if (!isEnabledMetric(k) && panelMapStandard[k]) {
+        panelMapStandard[k].show = false;
+        panelMapStandard[k].title = "";
+      }
+    });
+  }
+
+  const songListColumns = (mode === "standard")
+    ? ["Rank","Song","Artist"]
+    : ["Rank","Song","Artist","Original"];
+
+  const metricsCover = [
+    {
+      id: "origArtists",
+      svgId: "chart-orig-artists",
+      categoryFn: (row) => (row.originalArtist ? [row.originalArtist] : []),
+      minFinal: MIN_COUNT_ORIG_ARTIST,
+      topN: TOP_N_ARTISTS,
+      labelFn: labelDefault,
+      fullLabelFn: (cat) => String(cat || "")
+    },
+    {
+      id: "coverArtists",
+      svgId: "chart-cover-artists",
+      categoryFn: (row) => (row.artist ? [row.artist] : []),
+      minFinal: MIN_COUNT_COVER_ARTIST,
+      topN: TOP_N_ARTISTS,
+      labelFn: labelDefault,
+      fullLabelFn: (cat) => String(cat || "")
+    },
+    {
+      id: "genres",
+      svgId: "chart-genres",
+      categoryFn: (row) => row.genre_list || [],
+      minFinal: MIN_COUNT_GENRE,
+      topN: TOP_N_GENRES,
+      labelFn: labelDefault,
+      fullLabelFn: (cat) => String(cat || "")
+    },
+    {
+      id: "origSongs",
+      svgId: "chart-orig-songs",
+      categoryFn: (row) => (row.originalSongCombo ? [row.originalSongCombo] : []),
+      minFinal: MIN_COUNT_ORIG_SONG,
+      topN: TOP_N_ORIG_SONGS,
+      labelFn: labelDefault,
+      fullLabelFn: (cat) => String(cat || "")
+    },
+    {
+      id: "origDecades",
+      svgId: "chart-orig-decades",
+      categoryFn: (row) => (row.originalDecade != null ? [String(row.originalDecade)] : []),
+      minFinal: MIN_COUNT_ORIG_DECADE,
+      topN: TOP_N_DECADES,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "origYears",
+      svgId: "chart-orig-years",
+      categoryFn: (row) => (row.originalYear_parsed ? [String(row.originalYear_parsed)] : []),
+      minFinal: MIN_COUNT_ORIG_YEAR,
+      topN: TOP_N_YEARS,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "coverYears",
+      svgId: "chart-cover-years",
+      categoryFn: (row) => (row.coverYear_parsed ? [String(row.coverYear_parsed)] : []),
+      minFinal: MIN_COUNT_COVER_YEAR,
+      topN: TOP_N_YEARS,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    }
+  ];
+
+  const metricsStandard = [
+    {
+      id: "artists",
+      svgId: "chart-orig-artists",
+      categoryFn: (row) => (row.artist ? [row.artist] : []),
+      minFinal: MIN_COUNT_ORIG_ARTIST,
+      topN: TOP_N_ARTISTS,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "genres",
+      svgId: "chart-genres",
+      categoryFn: (row) => row.genre_list || [],
+      minFinal: MIN_COUNT_GENRE,
+      topN: TOP_N_GENRES,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "albums",
+      svgId: "chart-orig-songs",
+      categoryFn: (row) => (row.album ? [row.album] : []),
+      minFinal: MIN_COUNT_ALBUM,
+      topN: TOP_N_ORIG_SONGS,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "decades",
+      svgId: "chart-orig-decades",
+      categoryFn: (row) => (row.decade_parsed != null ? [String(row.decade_parsed)] : []),
+      minFinal: MIN_COUNT_DECADE,
+      topN: TOP_N_DECADES,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    },
+    {
+      id: "years",
+      svgId: "chart-orig-years",
+      categoryFn: (row) => (row.year_parsed ? [String(row.year_parsed)] : []),
+      minFinal: MIN_COUNT_ORIG_YEAR,
+      topN: TOP_N_YEARS,
+      labelFn: labelDefault,
+      fullLabelFn: null
+    }
+  ];
+
+  const want = (cfg && Array.isArray(cfg.metrics) && cfg.metrics.length) ? new Set(cfg.metrics) : null;
+  function allowedByConfig(id) {
+    if (!want) return true;
+    const snake = id.replace(/([A-Z])/g, "_$1").toLowerCase();
+    return want.has(id) || want.has(snake);
+  }
+  function filterMetrics(list) { return list.filter(m => allowedByConfig(m.id)); }
+
+  const metrics = (mode === "standard") ? filterMetrics(metricsStandard) : filterMetrics(metricsCover);
+
+  return {
+    mode,
+    interactiveFilters,
+    metrics,
+    panelMap,
+    songListColumns,
+    filterTitleTemplates
+  };
+}
+
+/* ===================== Layout / Mode application ===================== */
+function setDashboardTitle() {
+  const h = document.getElementById("dashboard-title");
+  if (!h) return;
+  const name = (APP_CONFIG && APP_CONFIG.countdownName) ? APP_CONFIG.countdownName : "Countdown";
+  h.textContent = name + " – Countdown Dashboard";
+  document.title = name + " – Countdown Dashboard";
+}
+
+function setPanelTitle(panelEl, title) {
+  if (!panelEl) return;
+  const t = panelEl.querySelector(".cell-title");
+  if (t) t.textContent = title || "";
+}
+
+function renderSongListTableHeader(columns) {
+  const table = PANEL.results ? PANEL.results.querySelector(".recent-table") : null;
+  if (!table) return;
+  const thead = table.querySelector("thead");
+  if (!thead) return;
+  const cols = Array.isArray(columns) ? columns : ["Rank","Song","Artist","Original"];
+  const ths = cols.map(c => "<th>" + c + "</th>").join("");
+  thead.innerHTML = "<tr>" + ths + "</tr>";
+}
+
+function applyModeSpec(spec) {
+  if (!spec) return;
+
+  document.body.setAttribute("data-mode", spec.mode);
+
+  const map = spec.panelMap || {};
+  function showPanel(key, el) {
+    const cfg = map[key] || { show: true, title: "" };
+    if (!el) return;
+
+    // Use both class-based hiding and inline display for maximum robustness across layout states.
+    el.classList.toggle("std-hidden", !cfg.show);
+    el.style.display = cfg.show ? "" : "none";
+    el.setAttribute("aria-hidden", cfg.show ? "false" : "true");
+
+    if (cfg.show) setPanelTitle(el, cfg.title);
+  }
+
+  showPanel("current", PANEL.current);
+  showPanel("results", PANEL.results);
+  showPanel("artists", PANEL.artists);
+  showPanel("genres", PANEL.genres);
+  showPanel("albums", PANEL.albums);
+  showPanel("decades", PANEL.decades);
+  showPanel("coverArtists", PANEL.coverArtists);
+  showPanel("years", PANEL.years);
+  showPanel("coverYears", PANEL.coverYears);
+
+  renderSongListTableHeader(spec.songListColumns || ["Rank","Song","Artist","Original"]);
+}
+
+/* ===================== Normalization ===================== */
+function parseYearFromString(value) {
+  if (value === null || value === undefined) return null;
+  const m = String(value).match(/\b(18|19|20)\d{2}\b/);
+  if (!m) return null;
+  const year = parseInt(m[0], 10);
+  if (isNaN(year) || year < 1800 || year > 2100) return null;
+  return year;
+}
+
+function computeDecade(year) {
+  if (year === null || year === undefined || isNaN(year)) return null;
+  const y = parseInt(year, 10);
+  return (Math.floor(y / 10) * 10) + "s";
+}
+
+function parsePhpGenre(value) {
+  if (!value || typeof value !== "string") return [];
+  if (!value.startsWith("a:")) return [];
+  const regex = /s:\d+:"(.*?)"/g;
+  const out = [];
+  let m;
+  while ((m = regex.exec(value)) !== null) out.push(m[1]);
+  return out;
+}
+
+function normalizeRow(row) {
+  const r = Object.assign({}, row);
+
+  // Normalize common legacy escaping in key text fields
+  r.song = normalizeTextField(r.song);
+  r.artist = normalizeTextField(r.artist);
+  r.album = normalizeTextField(r.album);
+  r.originalArtist = normalizeTextField(r.originalArtist);
+  r.originalYear = normalizeTextField(r.originalYear);
+  r.releaseDate = normalizeTextField(r.releaseDate);
+  r.coverYear = normalizeTextField(r.coverYear);
+  r.genre = normalizeTextField(r.genre);
+
+  r.rank = (r.rank != null) ? Number(r.rank) : null;
+
+  if (!r.albumArt) r.albumArt = r.albumArtUrl || r.album_art || r.album_image || "";
+
+  if (!r.genre_list) {
+    if (Array.isArray(r.genres)) r.genre_list = r.genres.slice();
+    else r.genre_list = parsePhpGenre(r.genre);
+  }
+
+  r.originalYear_parsed = parseYearFromString(r.originalYear);
+  r.year_parsed = parseYearFromString(r.year != null ? r.year : (r.releaseDate != null ? r.releaseDate : r.originalYear));
+  r.decade_parsed = computeDecade(r.year_parsed);
+
+  r.coverYear_parsed = parseYearFromString(r.coverYear != null ? r.coverYear : (r.releaseDate != null ? r.releaseDate : r.year));
+  r.originalDecade = computeDecade(r.originalYear_parsed);
+
+  const song = r.song || null;
+  const oa = r.originalArtist || null;
+  r.originalSongCombo = (song && oa) ? (song + " — " + oa) : null;
+
+  return r;
+}
+
+/* ===================== FilterState module ===================== */
+const filterState = (function(){
+  let activeFilter = null;
+  let initialTitle = null;
+  let currentRankForList = null;
+
+  function getResultsTitleEl() {
+    if (!PANEL.results) return null;
+    return PANEL.results.querySelector(".cell-title");
+  }
+
+  function getHintEl() { return document.getElementById("filter-hint"); }
+
+  function ensureInitialTitle() {
+    const t = getResultsTitleEl();
+    if (t && initialTitle === null) initialTitle = t.textContent || "Last 10 Songs";
+    if (initialTitle === null) initialTitle = "Last 10 Songs";
+  }
+
+  function effectiveColumns() {
+    const dash = document.getElementById("dashboard");
+    if (!dash) return 3;
+    try {
+      const cols = window.getComputedStyle(dash).gridTemplateColumns || "";
+      const parts = cols.trim().split(/\s+/).filter(Boolean);
+      return parts.length || 1;
+    } catch(e) { return 3; }
+  }
+
+  function allowedNow() {
+    return effectiveColumns() >= 3;
+  }
+
+  function enabled(spec) {
+    if (!spec || !spec.interactiveFilters || !spec.interactiveFilters.enabled) return false;
+    return true;
+  }
+
+  function isChartFilterable(spec, metricId) {
+    if (!enabled(spec)) return false;
+    const list = Array.isArray(spec.interactiveFilters.filterableCharts) ? spec.interactiveFilters.filterableCharts : [];
+    return list.indexOf(metricId) !== -1;
+  }
+
+  function metricIdToType(metricId) {
+    if (metricId === "genres") return "genre";
+    if (metricId === "origArtists") return "origArtist";
+    if (metricId === "coverArtists") return "coverArtist";
+    if (metricId === "origYears") return "origYear";
+    if (metricId === "artists") return "artist";
+    if (metricId === "years") return "year";
+    return null;
+  }
+
+  function titleFor(spec, filter) {
+    ensureInitialTitle();
+    if (!filter) return initialTitle;
+    const fn = spec && spec.filterTitleTemplates ? spec.filterTitleTemplates[filter.type] : null;
+    const v = String(filter.value || "");
+    return fn ? fn(v) : initialTitle;
+  }
+
+  function setTitle(text) {
+    const t = getResultsTitleEl();
+    if (t) t.textContent = text;
+  }
+
+  function dispatchChange() {
+    try {
+      document.dispatchEvent(new CustomEvent('filterchange', { detail: { active: activeFilter } }));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function showClear(show) {
+    const btn = document.getElementById("filter-clear-btn");
+    if (!btn) return;
+    btn.classList.toggle("hidden", !show);
+  }
+
+  function updateHint(spec) {
+    const hintEl = getHintEl();
+    if (!hintEl) return;
+    const show = enabled(spec) && allowedNow() && !activeFilter;
+    hintEl.classList.toggle("hidden", !show);
+  }
+
+  function matches(row, filter) {
+    if (!row || !filter) return false;
+    const v = String(filter.value || "");
+    if (filter.type === "genre") {
+      const gl = row.genre_list || [];
+      for (let i=0; i<gl.length; i++) if (String(gl[i]) === v) return true;
+      return false;
+    }
+    if (filter.type === "origArtist") return String(row.originalArtist || "") === v;
+    if (filter.type === "coverArtist") return String(row.artist || "") === v;
+    if (filter.type === "origYear") {
+      const y = row.originalYear_parsed != null ? String(row.originalYear_parsed) : "";
+      return y === v;
+    }
+    if (filter.type === "artist") return String(row.artist || "") === v;
+    if (filter.type === "year") {
+      const y2 = row.year_parsed != null ? String(row.year_parsed) : "";
+      return y2 === v;
+    }
+    return false;
+  }
+
+  function clear(spec, renderFn) {
+    activeFilter = null;
+    dispatchChange();
+    setTitle(titleFor(spec, null));
+    showClear(false);
+    updateHint(spec);
+    if (typeof renderFn === "function") renderFn(currentRankForList);
+    try { if (typeof playlistExport !== "undefined" && playlistExport && playlistExport.updateButtons) playlistExport.updateButtons(); } catch (e) {}
+  }
+
+  function apply(spec, type, value, renderFn) {
+    if (!type) return;
+    if (!enabled(spec)) return;
+    if (!allowedNow()) return;
+    activeFilter = { type, value };
+    dispatchChange();
+    setTitle(titleFor(spec, activeFilter));
+    showClear(true);
+    updateHint(spec);
+    if (typeof renderFn === "function") renderFn(currentRankForList);
+    try { if (typeof playlistExport !== "undefined" && playlistExport && playlistExport.updateButtons) playlistExport.updateButtons(); } catch (e) {}
+  }
+
+  function setCurrentRank(rank) { currentRankForList = rank; }
+  function getActive() { return activeFilter; }
+
+  function getFilteredRows(rows) {
+    if (!activeFilter || !Array.isArray(rows)) return [];
+    const out = [];
+    for (let i=0; i<rows.length; i++) {
+      const row = rows[i];
+      if (matches(row, activeFilter)) out.push(row);
+    }
+    return out;
+  }
+
+  function init(spec, renderFn) {
+    ensureInitialTitle();
+    updateHint(spec);
+
+    const clearBtn = document.getElementById("filter-clear-btn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function(ev){
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        clear(spec, renderFn);
+      });
+    }
+
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape" && activeFilter) clear(spec, renderFn);
+    });
+
+    window.addEventListener("resize", function(){ updateHint(spec); });
+  }
+
+  return { enabled, allowedNow, isChartFilterable, metricIdToType, matches, apply, clear, init, setCurrentRank, getActive, getFilteredRows, updateHint };
+})()
+
+/* ===================== Playlist Export (filtered results) ===================== */
+const playlistExport = (function(){
+  function slug(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "filter";
+  }
+
+  function downloadText(filename, text, mime) {
+    const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 0);
+  }
+
+  function activeRows() {
+    const f = filterState.getActive();
+    if (!f) return [];
+    // sortedSongs is global and already normalized
+    return filterState.getFilteredRows(sortedSongs);
+  }
+
+  function formatSpotifyM3U(rows) {
+    const lines = ["#EXTM3U"];
+    let included = 0;
+    for (let i=0; i<rows.length; i++) {
+      const r = rows[i];
+      const sp = r && r.media && r.media.spotify ? r.media.spotify : null;
+      const url = sp && (sp.url || (sp.id ? ("https://open.spotify.com/track/" + sp.id) : "")) ? (sp.url || ("https://open.spotify.com/track/" + sp.id)) : "";
+      if (!url) continue;
+      const secs = Math.max(0, Math.round((r.duration_ms || 0) / 1000));
+      const title = (String(r.artist || "").trim() + " - " + String(r.song || "").trim()).replace(/\s+/g, " ").trim();
+      lines.push("#EXTINF:" + secs + "," + title);
+      lines.push(url);
+      included++;
+    }
+    return { text: lines.join("\n") + "\n", included: included };
+  }
+
+  function formatAppleText(rows) {
+    const lines = [];
+    let included = 0;
+    for (let i=0; i<rows.length; i++) {
+      const r = rows[i];
+      const am = r && r.media && r.media.applemusic ? r.media.applemusic : null;
+      const url = am && am.url ? String(am.url) : "";
+      if (!url) continue;
+      const title = (String(r.song || "").trim() + " — " + String(r.artist || "").trim()).replace(/\s+/g, " ").trim();
+      lines.push(title);
+      lines.push(url);
+      lines.push("");
+      included++;
+    }
+    return { text: lines.join("\n"), included: included };
+  }
+
+  function setButtonsVisible(visible) {
+    const b1 = document.getElementById("playlist-spotify-btn");
+    const b2 = document.getElementById("playlist-apple-btn");
+    if (b1) b1.classList.toggle("hidden", !visible);
+    if (b2) b2.classList.toggle("hidden", !visible);
+  }
+
+  function updateButtons() {
+    const active = filterState.getActive();
+    const enabledCfg = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG && APP_CONFIG.interactiveFilters) ? APP_CONFIG.interactiveFilters.enabled !== false : true;
+    const visible = !!active && enabledCfg;
+    if (visible && !filterState.allowedNow()) { setButtonsVisible(false); return; }
+    setButtonsVisible(visible);
+
+    const rows = visible ? activeRows() : [];
+    const hasSpotify = rows.some(r => r && r.media && r.media.spotify && (r.media.spotify.url || r.media.spotify.id));
+    const hasApple = rows.some(r => r && r.media && r.media.applemusic && r.media.applemusic.url);
+
+    const b1 = document.getElementById("playlist-spotify-btn");
+    const b2 = document.getElementById("playlist-apple-btn");
+    if (b1) { b1.disabled = !hasSpotify; b1.title = hasSpotify ? "Download an M3U playlist using Spotify track links" : "Spotify links not available for these songs"; }
+    if (b2) { b2.disabled = !hasApple; b2.title = hasApple ? "Download a text file of Apple Music links (not an auto-import playlist)" : "Apple Music links not available for these songs"; }
+  }
+
+  function init() {
+    const spotifyBtn = document.getElementById("playlist-spotify-btn");
+    const appleBtn = document.getElementById("playlist-apple-btn");
+
+    if (spotifyBtn) {
+      spotifyBtn.addEventListener("click", function(ev){
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        if (spotifyBtn.disabled) return;
+        const rows = activeRows();
+        const f = filterState.getActive();
+        const name = "spotify-" + slug((f && f.type ? f.type : "filter") + "-" + (f && f.value ? f.value : "")) + ".m3u";
+        const out = formatSpotifyM3U(rows);
+        downloadText(name, out.text, "audio/x-mpegurl;charset=utf-8");
+        if (typeof showToast === "function") showToast("Downloaded Spotify M3U (" + out.included + " tracks)");
+      });
+    }
+
+    if (appleBtn) {
+      appleBtn.addEventListener("click", function(ev){
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        if (appleBtn.disabled) return;
+        const rows = activeRows();
+        const f = filterState.getActive();
+        const name = "apple-links-" + slug((f && f.type ? f.type : "filter") + "-" + (f && f.value ? f.value : "")) + ".txt";
+        const out = formatAppleText(rows);
+        downloadText(name, out.text, "text/plain;charset=utf-8");
+        if (typeof showToast === "function") showToast("Downloaded Apple links TXT (" + out.included + " tracks)");
+      });
+    }
+
+    document.addEventListener("filterchange", function(){ updateButtons(); });
+    window.addEventListener("resize", function(){ updateButtons(); });
+    updateButtons();
+  }
+
+  return { init: init, updateButtons: updateButtons };
+})();
+;
+
 /* ===================== Player (on-demand, floating) ===================== */
 (function () {
   if (window.Race2Player) return;
@@ -589,20 +1425,24 @@ var rankToFrameIndex = {};
     if (!media) return null;
 
     var bc = media.bandcamp;
-    if (bc && (bc.status === "manual" || bc.status === "found") && bc.embed_src) {
-      return { key: "bandcamp", embed_src: bc.embed_src, height: 120 };
-    }
+    if (bc && bc.embed_src) return { key: "bandcamp", embed_src: bc.embed_src, height: 120 };
 
     var sp = media.spotify;
-    if (sp && sp.status === "found" && sp.embed_src) {
-      return { key: "spotify", embed_src: sp.embed_src, height: 152 };
-    }
+    if (sp && sp.embed_src) return { key: "spotify", embed_src: sp.embed_src, height: 152 };
 
     var dz = media.deezer;
-    if (dz && dz.status === "found" && dz.embed_src) {
-      return { key: "deezer", embed_src: dz.embed_src, height: 200 };
-    }
+    if (dz && dz.embed_src) return { key: "deezer", embed_src: dz.embed_src, height: 200 };
 
+    var am = media.applemusic || media.appleMusic || media.apple;
+    if (am) {
+      if (am.previewUrl) return { key: "applemusic", audio_src: am.previewUrl, height: 60 };
+      var u = am.url || am.trackViewUrl;
+      if (u && typeof u === "string" && u.indexOf("music.apple.com") !== -1) {
+        var embedUrl = u.replace("https://music.apple.com", "https://embed.music.apple.com")
+                        .replace("http://music.apple.com", "https://embed.music.apple.com");
+        return { key: "applemusic", embed_src: embedUrl, height: 175 };
+      }
+    }
     return null;
   }
 
@@ -620,7 +1460,7 @@ var rankToFrameIndex = {};
     if (!playBtn || !msg) return;
 
     var provider = pickProvider(row && row.media);
-    if (provider && provider.embed_src) {
+    if (provider && (provider.audio_src || provider.embed_src)) {
       playBtn.classList.remove("hidden");
       playBtn.disabled = false;
       playBtn.textContent = "Play";
@@ -639,7 +1479,18 @@ var rankToFrameIndex = {};
     if (!embedEl || !linksEl) return;
 
     var provider = pickProvider(row && row.media);
-    if (provider && provider.embed_src) {
+    if (provider && provider.audio_src) {
+      embedEl.innerHTML = "";
+      var audio = document.createElement("audio");
+      audio.controls = true;
+      audio.preload = "none";
+      audio.style.width = "100%";
+      audio.style.marginTop = "10px";
+      var src = document.createElement("source");
+      src.src = provider.audio_src;
+      audio.appendChild(src);
+      embedEl.appendChild(audio);
+    } else if (provider && provider.embed_src) {
       embedEl.innerHTML =
         '<iframe loading="lazy"' +
         ' src="' + provider.embed_src + '"' +
@@ -652,6 +1503,7 @@ var rankToFrameIndex = {};
 
     var m = (row && row.media) ? row.media : {};
     var links = [];
+    if (m.applemusic && (m.applemusic.url || m.applemusic.trackViewUrl)) links.push('<a target="_blank" rel="noopener" href="' + (m.applemusic.url || m.applemusic.trackViewUrl) + '">Open in Apple Music</a>');
     if (m.spotify && m.spotify.url)  links.push('<a href="' + m.spotify.url + '">Open in Spotify</a>');
     if (m.deezer  && m.deezer.url)   links.push('<a href="' + m.deezer.url + '">Open in Deezer</a>');
     if (m.bandcamp && m.bandcamp.url) links.push('<a href="' + m.bandcamp.url + '">Support on Bandcamp</a>');
@@ -679,7 +1531,7 @@ var rankToFrameIndex = {};
   function play() {
     var row = state.lastSong;
     var provider = pickProvider(row && row.media);
-    if (!provider || !provider.embed_src) return;
+    if (!provider || (!provider.embed_src && !provider.audio_src)) return;
     open(row);
     var playBtn = document.getElementById("player-play-btn");
     if (playBtn) playBtn.textContent = "Playing";
@@ -688,16 +1540,12 @@ var rankToFrameIndex = {};
   function update(row) {
     state.lastSong = row;
     setAttachedAvailability(row);
-    if (state.open) {
-      setFloatingTitle(row);
-      renderFloating(row);
-    }
+    if (state.open) return;
   }
 
   window.Race2Player = { update: update, play: play, close: close };
 })();
 
-/* Wire player buttons (Safari compatible) */
 document.addEventListener("click", function(e){
   if (!e || !e.target) return;
   if (e.target.id === "player-play-btn") {
@@ -710,120 +1558,21 @@ document.addEventListener("click", function(e){
   }
 });
 
+function renderExternalLinksForRow(row, containerEl) {
+  if (!containerEl) return;
+  var m = (row && row.media) ? row.media : {};
+  var links = [];
 
-/* ===================== Helpers ===================== */
-function truncateLabel(label, maxLen) {
-  if (!label) return "";
-  const s = String(label);
-  if (s.length <= maxLen) return s;
-  if (maxLen <= 1) return s.slice(0, maxLen);
-  return s.slice(0, maxLen - 1) + "…";
+  var amUrl = (m.applemusic && (m.applemusic.url || m.applemusic.trackViewUrl)) ? (m.applemusic.url || m.applemusic.trackViewUrl) : null;
+  if (amUrl) links.push('<a target="_blank" rel="noopener" href="' + amUrl + '">Apple</a>');
+  if (m.spotify && m.spotify.url) links.push('<a target="_blank" rel="noopener" href="' + m.spotify.url + '">Spotify</a>');
+  if (m.deezer && m.deezer.url) links.push('<a target="_blank" rel="noopener" href="' + m.deezer.url + '">Deezer</a>');
+  if (m.bandcamp && m.bandcamp.url) links.push('<a target="_blank" rel="noopener" href="' + m.bandcamp.url + '">Bandcamp</a>');
+
+  containerEl.innerHTML = links.join("");
 }
 
-function cleanLabelText(s) {
-  return String(s || "").replace(/\\'/g, "'");
-}
-
-function renderUpcomingFromCurrent(currentRank) {
-  if (!recentSongsBody) return;
-
-  // Spec:
-  // - When currentRank is APP_CONFIG.rankMax (end), show nothing.
-  // - When currentRank is 1, show 1..10.
-  // - Always sort/display ascending starting from currentRank.
-  var rows = [];
-  var cr = Number(currentRank || 0);
-  if (!cr || isNaN(cr)) { recentSongsBody.innerHTML = ""; return; }
-  if (cr >= APP_CONFIG.rankMax) { recentSongsBody.innerHTML = ""; return; }
-
-  var start = cr;
-  var end = Math.min(APP_CONFIG.rankMax, cr + 9);
-
-  for (var r = start; r <= end; r++) {
-    if (r === APP_CONFIG.rankMax) { /* allowed, but if cr==APP_CONFIG.rankMax we already returned */ }
-    var row = rankToRow[r];
-    if (row) rows.push(row);
-  }
-
-  var htmlRows = [];
-  for (var i=0; i<rows.length; i++) {
-    var rr = rows[i];
-    var rank = (rr.rank != null) ? String(rr.rank) : "";
-    var song = rr.song ? cleanLabelText(rr.song) : "";
-    var artist = rr.artist ? cleanLabelText(rr.artist) : "";
-    var mode3 = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
-    var col4 = "";
-    if (mode3 === "cover") col4 = rr.originalArtist ? cleanLabelText(rr.originalArtist) : "";
-    else col4 = rr.album ? cleanLabelText(rr.album) : "";
-    htmlRows.push("<tr data-rank=\"" + rank + "\"><td>" + rank + "</td><td>" + song + "</td><td>" + artist + "</td><td>" + col4 + "</td></tr>");
-  }
-  recentSongsBody.innerHTML = htmlRows.join("");
-}
-
-function pushRecent(row) {
-  if (!row) return;
-  // Key by id if present, else rank+song
-  var key = (row.id != null) ? String(row.id) : (String(row.rank || "") + "|" + String(row.song || ""));
-  // Remove existing
-  for (var i=0; i<recentHistory.length; i++) {
-    var k = (recentHistory[i].id != null) ? String(recentHistory[i].id) : (String(recentHistory[i].rank || "") + "|" + String(recentHistory[i].song || ""));
-    if (k === key) { recentHistory.splice(i,1); break; }
-  }
-  recentHistory.push({
-    id: row.id,
-    rank: row.rank,
-    song: row.song,
-    artist: row.artist,
-    originalArtist: row.originalArtist
-  });
-  while (recentHistory.length > 15) recentHistory.shift();
-  renderRecentSongs();
-}
-
-
-/* Extract first 4-digit year anywhere */
-function parseYearFromString(value) {
-  if (value === null || value === undefined) return null;
-  const m = String(value).match(/\b(18|19|20)\d{2}\b/);
-  if (!m) return null;
-  const year = parseInt(m[0], 10);
-  if (isNaN(year) || year < 1800 || year > 2100) return null;
-  return year;
-}
-
-function computeDecade(year) {
-  if (year === null || year === undefined || isNaN(year)) return null;
-  const y = parseInt(year, 10);
-  return (Math.floor(y / 10) * 10) + "s";
-}
-
-/* Simple PHP-serialized genre extraction: grabs quoted strings */
-function parseGenres(value){
-  if (value == null) return [];
-  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
-  const s0 = String(value);
-  const s = s0.replace(/\\"/g, '"').replace(/\\'/g, "'").trim();
-  if (!s) return [];
-  // PHP serialized array: a:N:{...s:L:"genre"...}
-  if (s.startsWith("a:")) {
-    const regex = /s:\d+:"(.*?)"/g;
-    const out = [];
-    let m;
-    while ((m = regex.exec(s)) !== null) out.push(m[1]);
-    return out.map(v => String(v).trim()).filter(Boolean);
-  }
-  // JSON array string
-  if (s.startsWith("[") && s.endsWith("]")) {
-    try {
-      const arr = JSON.parse(s);
-      if (Array.isArray(arr)) return arr.map(v => String(v).trim()).filter(Boolean);
-    } catch(e){}
-  }
-  // Single genre string
-  return [s];
-}
-
-
+/* ===================== Charts ===================== */
 function computeGlobalMax(framesCounts, minDisplay) {
   let maxVal = 0;
   framesCounts.forEach(frame => {
@@ -889,14 +1638,20 @@ function setupChart(svgElement, topN, globalMax, allowedSet) {
   else if (width <= 900) marginLeft = 150;
   else marginLeft = 165;
 
+  // Give labels a bit more room for long categories (aim for ~70% plot / 30% labels).
+  // Keep consistent across charts, but cap so we don't crush the plot.
+  const proportionalLeft = Math.round(width * 0.30);
+  marginLeft = Math.max(marginLeft, proportionalLeft);
+  marginLeft = Math.min(marginLeft, 220);
+
   const margin = { top: 4, right: 8, bottom: 18, left: marginLeft };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
   const g = svg
-    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("viewBox", "0 0 " + width + " " + height)
     .append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   const maxVal = Math.max(globalMax, 2);
   const step = chooseTickStep(maxVal);
@@ -911,7 +1666,7 @@ function setupChart(svgElement, topN, globalMax, allowedSet) {
 
   g.append("g")
     .attr("class", "x-grid")
-    .attr("transform", `translate(0,${innerHeight})`)
+    .attr("transform", "translate(0," + innerHeight + ")")
     .call(xAxisGrid)
     .selectAll("line")
     .attr("stroke", "#333")
@@ -921,7 +1676,7 @@ function setupChart(svgElement, topN, globalMax, allowedSet) {
 
   g.append("g")
     .attr("class", "x-axis")
-    .attr("transform", `translate(0,${innerHeight})`)
+    .attr("transform", "translate(0," + innerHeight + ")")
     .call(xAxis)
     .selectAll("text")
     .attr("fill", "#ccc")
@@ -930,7 +1685,7 @@ function setupChart(svgElement, topN, globalMax, allowedSet) {
   const slotHeight = innerHeight / topN;
   const barHeight = slotHeight * BAR_HEIGHT_FACTOR;
 
-  const colorRange = d3.schemeTableau10.concat(d3.schemeSet3); /* 22 colors */
+  const colorRange = d3.schemeTableau10.concat(d3.schemeSet3);
   const domainCats = Array.from(allowedSet).sort((a,b) => String(a).localeCompare(String(b)));
   const colorScale = d3.scaleOrdinal(colorRange).domain(domainCats);
 
@@ -938,7 +1693,12 @@ function setupChart(svgElement, topN, globalMax, allowedSet) {
 }
 
 function updateChart(chart, frameCounts, prevFrameCounts, allowedSet, labelFn, fullLabelFn, options) {
-  const { slotHeight, barHeight, xScale, g, topN, colorScale } = chart;
+  const slotHeight = chart.slotHeight;
+  const barHeight = chart.barHeight;
+  const xScale = chart.xScale;
+  const g = chart.g;
+  const topN = chart.topN;
+  const colorScale = chart.colorScale;
 
   const minDisplay = options.minDisplayCount;
   const fastThreshold = options.fastRiserThreshold;
@@ -956,7 +1716,6 @@ function updateChart(chart, frameCounts, prevFrameCounts, allowedSet, labelFn, f
     return;
   }
 
-  /* bottom-up fill */
   const startSlot = topN - count;
   const slotPositions = d3.range(count).map(i => {
     const slotIndex = startSlot + i;
@@ -1011,9 +1770,61 @@ function updateChart(chart, frameCounts, prevFrameCounts, allowedSet, labelFn, f
     })
     .attr("font-weight", d => fastSet.has(d[0]) ? "bold" : "normal");
 
+  const canClick = options && typeof options.onItemClick === "function" && options.clickable === true;
+  if (canClick) {
+    // Ensure we do not stack multiple tooltips
+    g.selectAll("rect.bar title").remove();
+    g.selectAll("rect.bar").classed("chart-clickable", true)
+      .style("cursor", "pointer")
+      .on("click", function(event, d) {
+        if (event && event.stopPropagation) event.stopPropagation();
+        options.onItemClick(d[0]);
+      });
+    g.selectAll("text.y-label").classed("chart-clickable", true)
+      .style("cursor", "pointer")
+      .on("click", function(event, d) {
+        if (event && event.stopPropagation) event.stopPropagation();
+        options.onItemClick(d[0]);
+      });
+    // Tooltips
+    // - Bars: indicate click-to-filter and include the value
+    // - Labels: show full value for readability (truncated labels)
+    function _full(cat) {
+      if (typeof fullLabelFn === "function") {
+        const v = fullLabelFn(cat);
+        if (v !== null && v !== undefined && String(v)) return String(v);
+      }
+      if (typeof labelFn === "function") {
+        const v2 = labelFn(cat);
+        if (v2 !== null && v2 !== undefined) return String(v2);
+      }
+      return String(cat || "");
+    }
+
+    g.selectAll("rect.bar").each(function(d) {
+      const cat = d[0];
+      const sel = d3.select(this);
+      let t = sel.select("title");
+      if (t.empty()) t = sel.append("title");
+      t.text("Click to filter by " + _full(cat));
+    });
+
+    g.selectAll("text.y-label").each(function(d) {
+      const cat = d[0];
+      const sel = d3.select(this);
+      let t = sel.select("title");
+      if (t.empty()) t = sel.append("title");
+      t.text(_full(cat));
+    });
+
+  } else {
+    g.selectAll("rect.bar").classed("chart-clickable", false).style("cursor", null).on("click", null);
+    g.selectAll("text.y-label").classed("chart-clickable", false).style("cursor", null).on("click", null);
+    g.selectAll("rect.bar title").remove();
+  }
+
   labels.exit().remove();
 
-  /* tooltip for full text if requested */
   if (typeof fullLabelFn === "function") {
     merged.each(function(d) {
       const cat = d[0];
@@ -1028,9 +1839,6 @@ function updateChart(chart, frameCounts, prevFrameCounts, allowedSet, labelFn, f
     merged.select("title").remove();
   }
 }
-
-function labelDefault(cat) { return cleanLabelText(cat); }
-function labelDecade(cat)  { return cleanLabelText(cat); }
 
 /* ===================== Controls ===================== */
 function stepSlider(delta) {
@@ -1099,37 +1907,55 @@ function initCellToggles() {
       cell.classList.toggle("is-expanded", isHidden);
       btn.textContent = isHidden ? "Hide" : "Show";
 
-      if (initialized) rebuildChartsAndRedraw();
+      if (window.__DASH_INITIALIZED__) rebuildChartsAndRedraw(window.__DASH_SPEC__);
     });
   });
 }
 
 function initDragAndDrop() {
-  const dashboard = document.getElementById("dashboard");
-  const finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
-  if (!finePointer) return;
+  var dashboard = document.getElementById("dashboard");
+  var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  if (!dashboard || !finePointer) return;
 
-  let dragSrcEl = null;
+  var dragSrcEl = null;
 
-  dashboard.querySelectorAll(".draggable-cell").forEach(cell => {
+  dashboard.querySelectorAll(".draggable-cell").forEach(function(cell) {
+    var header = cell.querySelector(".cell-header");
+
+    // Allow dragging from the whole panel (regression fix), but keep charts clickable.
+    // We still prefer header grabs; chart bodies are excluded.
     cell.setAttribute("draggable", "true");
+    if (header) header.classList.add("drag-handle");
 
-    cell.addEventListener("dragstart", e => {
+    cell.addEventListener("dragstart", function(e) {
+      var tgt = e && e.target ? e.target : null;
+      if (tgt && tgt.closest) {
+        if (tgt.closest("svg") || tgt.closest(".cell-toggle") || tgt.closest("button") || tgt.closest("a") || tgt.closest("input") || tgt.closest("select") || tgt.closest("textarea")) {
+          if (e && e.preventDefault) e.preventDefault();
+          return;
+        }
+      }
+
       dragSrcEl = cell;
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", "");
+      if (e && e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", ""); } catch(err) {}
+      }
       cell.classList.add("dragging");
     });
 
-    cell.addEventListener("dragend", () => cell.classList.remove("dragging"));
+    cell.addEventListener("dragend", function() {
+      cell.classList.remove("dragging");
+      dragSrcEl = null;
+    });
 
-    cell.addEventListener("dragover", e => {
-      e.preventDefault();
+    cell.addEventListener("dragover", function(e) {
+      if (e) e.preventDefault();
       if (!dragSrcEl || dragSrcEl === cell) return;
 
-      const rect = cell.getBoundingClientRect();
-      const offset = e.clientY - rect.top;
-      const midpoint = rect.height / 2;
+      var rect = cell.getBoundingClientRect();
+      var offset = (e && e.clientY != null) ? (e.clientY - rect.top) : 0;
+      var midpoint = rect.height / 2;
       if (offset > midpoint) dashboard.insertBefore(dragSrcEl, cell.nextSibling);
       else dashboard.insertBefore(dragSrcEl, cell);
     });
@@ -1139,67 +1965,125 @@ function initDragAndDrop() {
 function initResizeHandler() {
   let t = null;
   window.addEventListener("resize", () => {
-    if (!initialized) return;
+    if (!window.__DASH_INITIALIZED__) return;
     clearTimeout(t);
-    t = setTimeout(() => rebuildChartsAndRedraw(), 80);
+    t = setTimeout(() => rebuildChartsAndRedraw(window.__DASH_SPEC__), 80);
   });
 }
 
-function rebuildChartsAndRedraw() {
+/* ===================== Song list rendering ===================== */
+let sortedSongs = [];
+let frameRanks = [];
+let rankToRow = {};
+let rankToFrameIndex = {};
+let metrics = [];
+let metricState = {};
+let currentFrameIndex = 0;
+
+function rowCellsForSpec(row, spec) {
+  const cols = spec.songListColumns || ["Rank","Song","Artist","Original"];
+  const cells = [];
+  for (let i=0; i<cols.length; i++) {
+    const c = cols[i];
+    if (c === "Rank") cells.push(String(row.rank != null ? row.rank : ""));
+    else if (c === "Song") cells.push(cleanLabelText(row.song || ""));
+    else if (c === "Artist") cells.push(cleanLabelText(row.artist || ""));
+    else if (c === "Original") cells.push(cleanLabelText(row.originalArtist || ""));
+    else cells.push("");
+  }
+  return cells;
+}
+
+function renderUpcomingFromCurrent(currentRank, spec) {
+  if (!resultsBody) return;
+
+  const cr = Number(currentRank || 0);
+  if (!cr || isNaN(cr)) { resultsBody.innerHTML = ""; return; }
+  if (cr >= (APP_CONFIG.rankMax || 885)) { resultsBody.innerHTML = ""; return; }
+
+  const start = cr;
+  const end = Math.min((APP_CONFIG.rankMax || 885), cr + 9);
+
+  const rows = [];
+  for (let r = start; r <= end; r++) {
+    const row = rankToRow[r];
+    if (row) rows.push(row);
+  }
+
+  resultsBody.innerHTML = rows.map(rr => {
+    const rank = (rr.rank != null) ? String(rr.rank) : "";
+    const tds = rowCellsForSpec(rr, spec).map(v => "<td>" + v + "</td>").join("");
+    return "<tr data-rank=\"" + rank + "\">" + tds + "</tr>";
+  }).join("");
+}
+
+function renderFilteredSongs(spec) {
+  if (!resultsBody) return;
+  const af = filterState.getActive();
+  if (!af) { resultsBody.innerHTML = ""; return; }
+
+  const matches = [];
+  for (let i=0; i<sortedSongs.length; i++) {
+    const r = sortedSongs[i];
+    if (filterState.matches(r, af)) matches.push(r);
+  }
+  matches.sort((a,b) => Number(a.rank||0) - Number(b.rank||0));
+
+  resultsBody.innerHTML = matches.map(rr => {
+    const rank = (rr.rank != null) ? String(rr.rank) : "";
+    const tds = rowCellsForSpec(rr, spec).map(v => "<td>" + v + "</td>").join("");
+    return "<tr data-rank=\"" + rank + "\">" + tds + "</tr>";
+  }).join("");
+}
+
+function renderSongList(currentRank, spec) {
+  filterState.setCurrentRank(currentRank);
+  if (filterState.getActive()) renderFilteredSongs(spec);
+  else renderUpcomingFromCurrent(currentRank, spec);
+}
+
+/* ===================== Charts rebuild/redraw ===================== */
+function rebuildChartsAndRedraw(spec) {
   metrics.forEach(metric => {
     const state = metricState[metric.id];
     const svgEl = document.getElementById(metric.svgId);
     if (!state || !svgEl) return;
     state.chart = setupChart(svgEl, metric.topN, state.globalMax, state.allowed);
   });
-  updateDashboard(currentFrameIndex);
+  updateDashboard(currentFrameIndex, spec);
 }
 
 /* ===================== Main ===================== */
 async function init() {
+  const spec = getModeSpec(APP_CONFIG);
+  window.__DASH_SPEC__ = spec;
+
+  setDashboardTitle();
+  applyModeSpec(spec);
+
   initCellToggles();
   initDragAndDrop();
   initKeyboardStepping();
   initSwipeStepping();
   initResizeHandler();
-  try {
-    const name = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.countdownName) ? APP_CONFIG.countdownName : "WXPN Countdown";
-    const h = document.getElementById("page-title");
-    if (h) h.textContent = name;
-    document.title = name;
-  } catch(e) {}
 
+  filterState.init(spec, function(rank){
+    renderSongList(rank, spec);
+  });
+  playlistExport.init();
 try {
     const resp = await fetch(DATA_ENDPOINT);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
     if (!Array.isArray(data)) throw new Error("Data endpoint must return an array");
 
-    const raw = data.map(d => ({ ...d }));
-    raw.forEach(row => {
-      row.rank = row.rank != null ? Number(row.rank) : null;
+    const normalized = data.map(d => normalizeRow(d));
 
-      //row.genres = parseGenres(row.genre);
-      //row.genres = Array.isArray(row.genres) ? row.genres : [];
-      row.genres = Array.isArray(row.genres) ? row.genres :
-           (Array.isArray(row.genre_tokens_wxpn) ? row.genre_tokens_wxpn :
-           parseGenres(row.genre_repaired_php ?? row.genre));
-
-      row.originalYear_parsed = parseYearFromString(row.originalYear);
-      row.coverYear_parsed = parseYearFromString(row.releaseDate);
-
-      row.originalDecade = computeDecade(row.originalYear_parsed);
-      row.coverDecade = computeDecade(row.coverYear_parsed);
-
-      const song = row.song || null;
-      const oa = row.originalArtist || null;
-      row.originalSongCombo = (song && oa) ? `${song} — ${oa}` : null;
-    });
-
-    const filtered = raw.filter(row => {
+    const filtered = normalized.filter(row => {
       if (row.rank == null || isNaN(row.rank)) return false;
       const hasArtist = row.artist != null && row.artist !== "";
-      return hasArtist;
+      const hasOrigArtist = row.originalArtist != null && row.originalArtist !== "";
+      return hasArtist || hasOrigArtist;
     });
 
     if (!filtered.length) {
@@ -1207,109 +2091,21 @@ try {
       return;
     }
 
-    // ranks descending: APP_CONFIG.rankMax -> 1
     sortedSongs = filtered.slice().sort((a,b) => d3.descending(a.rank, b.rank));
     frameRanks = sortedSongs.map(r => r.rank);
     rankToRow = {};
     rankToFrameIndex = {};
-    sortedSongs.forEach(function(r,i){ if (r && r.rank != null) { var rk = Number(r.rank); rankToRow[rk] = r; rankToFrameIndex[rk] = i; } });
-
-    // -------------------------------
-    // Multi-countdown metric registry
-    // -------------------------------
-    const METRIC_REGISTRY = {
-      // Cover metrics
-      orig_artists: { id:"origArtists",  title:"Most Covered Original Artists",
-        categoryFn: r => (r.originalArtist ? [r.originalArtist] : []),
-        minFinal: MIN_COUNT_ORIG_ARTIST, topN: TOP_N_ARTISTS, labelFn: labelDefault, fullLabelFn: null
-      },
-      cover_artists:{ id:"coverArtists", title:"Most Frequent Cover Artists",
-        categoryFn: r => (r.artist ? [r.artist] : []),
-        minFinal: MIN_COUNT_COVER_ARTIST, topN: TOP_N_ARTISTS, labelFn: labelDefault, fullLabelFn: null
-      },
-      orig_years:   { id:"origYears", title:"Most Covered Original Years",
-        categoryFn: r => (r.originalYear_parsed != null ? [String(r.originalYear_parsed)] : []),
-        minFinal: MIN_COUNT_ORIG_YEAR, topN: TOP_N_YEARS, labelFn: labelDefault, fullLabelFn: null
-      },
-      orig_decades: { id:"origDecades", title:"Most Covered Original Decades",
-        categoryFn: r => (r.originalDecade ? [r.originalDecade] : []),
-        minFinal: MIN_COUNT_DECADE, topN: TOP_N_DECADES, labelFn: labelDecade, fullLabelFn: null
-      },
-      cover_years:  { id:"coverYears", title:"Most Frequent Cover Years",
-        categoryFn: r => (r.coverYear_parsed != null ? [String(r.coverYear_parsed)] : []),
-        minFinal: MIN_COUNT_COVER_YEAR, topN: TOP_N_YEARS, labelFn: labelDefault, fullLabelFn: null
-      },
-      orig_songs:   { id:"origSongs", title:"Most Covered Original Songs",
-        categoryFn: r => (r.originalSongCombo ? [r.originalSongCombo] : []),
-        minFinal: MIN_COUNT_ORIG_SONG, topN: TOP_N_ORIG_SONGS, labelFn: labelDefault, fullLabelFn: (cat)=>cleanLabelText(cat)
-      },
-
-      // Standard metrics (songs are still the unit)
-      artists: { id:"artists", title:"Most Frequent Artists",
-        categoryFn: r => (r.artist ? [r.artist] : []),
-        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
-      },
-      albums:  { id:"albums", title:"Most Frequent Albums",
-        categoryFn: r => (r.album ? [r.album] : []),
-        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
-      },
-      years:   { id:"years", title:"Most Frequent Years",
-        categoryFn: r => (r.coverYear_parsed != null ? [String(r.coverYear_parsed)] : []),
-        minFinal: 2, topN: 15, labelFn: labelDefault, fullLabelFn: null
-      },
-      decades: { id:"decades", title:"Most Frequent Decades",
-        categoryFn: r => (r.coverDecade ? [r.coverDecade] : []),
-        minFinal: 2, topN: 10, labelFn: labelDecade, fullLabelFn: null
-      },
-
-      // Shared
-      genres:  { id:"genres", title:"Most Represented Genres",
-        categoryFn: r => (r.genres || []),
-        minFinal: MIN_COUNT_GENRE, topN: TOP_N_GENRES, labelFn: labelDefault, fullLabelFn: null
-      }
-    };
-
-    function selectedMetricKeys(){
-      if (typeof APP_CONFIG !== "undefined" && APP_CONFIG && Array.isArray(APP_CONFIG.metrics) && APP_CONFIG.metrics.length){
-        return APP_CONFIG.metrics.slice();
-      }
-      const mode = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
-      if (mode === "standard") return ["artists","albums","years","decades","genres"];
-      return ["orig_artists","cover_artists","orig_years","orig_decades","cover_years","orig_songs","genres"];
-    }
-
-    const metricKeys = selectedMetricKeys();
-    const slotSvgIds = ["chart-slot-1","chart-slot-2","chart-slot-3","chart-slot-4","chart-slot-5","chart-slot-6","chart-slot-7"];
-
-    metrics = metricKeys.map((key, idx) => {
-      const def = METRIC_REGISTRY[key];
-      if (!def) return null;
-      return { ...def, svgId: slotSvgIds[idx] };
-    }).filter(Boolean);
-
-    // Apply titles + hide unused chart cells
-    const chartCellIds = ["cell1","cell3","cell4","cell5","cell6","cell7","cell8"];
-    chartCellIds.forEach((cellId, i) => {
-      const cell = document.getElementById(cellId);
-      if (!cell) return;
-      if (i < metrics.length) {
-        cell.style.display = "";
-        const titleEl = cell.querySelector(".cell-title");
-        if (titleEl) titleEl.textContent = metrics[i].title || "Chart";
-      } else {
-        cell.style.display = "none";
+    sortedSongs.forEach(function(r,i){
+      if (r && r.rank != null) {
+        const rk = Number(r.rank);
+        rankToRow[rk] = r;
+        rankToFrameIndex[rk] = i;
       }
     });
 
-    // Last 10 column 4 label
-    try {
-      const mode2 = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
-      const th = document.getElementById("next-col-4");
-      if (th) th.textContent = (mode2 === "cover") ? "Original" : "Album";
-    } catch(e) {}
-
-
+    metrics = spec.metrics || [];
     metricState = {};
+
     metrics.forEach(metric => {
       const { frames, allowed } = buildMetricTimeSeries(sortedSongs, metric.categoryFn, metric.minFinal);
       const globalMax = computeGlobalMax(frames, MIN_DISPLAY_COUNT);
@@ -1333,27 +2129,37 @@ try {
     currentFrameIndex = 0;
 
     frameSlider.addEventListener("input", e => {
+      __isScrubbing = true;
       const idx = Number(e.target.value) || 0;
-      updateDashboard(idx);
+      updateDashboard(idx, spec);
     });
 
-    // Clickable rows in Last 10 Songs: jump to that rank
-    if (recentSongsBody) {
-      recentSongsBody.addEventListener("click", function(ev) {
-        var tr = ev.target && ev.target.closest ? ev.target.closest("tr") : null;
+    
+    frameSlider.addEventListener("change", e => {
+      __isScrubbing = false;
+      const idx = Number(e.target.value) || 0;
+      const row = sortedSongs[idx];
+      if (row) {
+        const imgUrl = row.albumArt || "";
+        const altText = cleanLabelText(row.song || "") + " - " + cleanLabelText(row.artist || "");
+        scheduleAlbumArtUpdate(imgUrl, altText, true);
+      }
+    });
+if (resultsBody) {
+      resultsBody.addEventListener("click", function(ev) {
+        const tr = ev.target && ev.target.closest ? ev.target.closest("tr") : null;
         if (!tr) return;
-        var r = Number(tr.getAttribute("data-rank") || 0);
+        const r = Number(tr.getAttribute("data-rank") || 0);
         if (!r || isNaN(r)) return;
-        var idx2 = (rankToFrameIndex && (r in rankToFrameIndex)) ? rankToFrameIndex[r] : null;
+        const idx2 = (rankToFrameIndex && (r in rankToFrameIndex)) ? rankToFrameIndex[r] : null;
         if (idx2 === null || idx2 === undefined) return;
         frameSlider.value = String(idx2);
-        updateDashboard(idx2);
+        updateDashboard(idx2, spec);
       });
     }
 
-
-    initialized = true;
-    updateDashboard(0);
+    window.__DASH_INITIALIZED__ = true;
+    updateDashboard(0, spec);
 
   } catch (err) {
     console.error(err);
@@ -1361,7 +2167,7 @@ try {
   }
 }
 
-function updateDashboard(frameIndex) {
+function updateDashboard(frameIndex, spec) {
   if (!sortedSongs.length) return;
 
   const numFrames = sortedSongs.length;
@@ -1378,6 +2184,7 @@ function updateDashboard(frameIndex) {
     const prevIndex = Math.max(0, currentFrameIndex - MOMENTUM_WINDOW);
     const prevCounts = state.frames[prevIndex] || {};
 
+    const clickable = filterState.isChartFilterable(spec, metric.id) && filterState.allowedNow();
     updateChart(
       state.chart,
       frameCounts,
@@ -1385,21 +2192,24 @@ function updateDashboard(frameIndex) {
       state.allowed,
       state.labelFn,
       state.fullLabelFn,
-      { minDisplayCount: MIN_DISPLAY_COUNT, fastRiserThreshold: FAST_RISER_THRESHOLD }
+      {
+        minDisplayCount: MIN_DISPLAY_COUNT,
+        fastRiserThreshold: FAST_RISER_THRESHOLD,
+        clickable: clickable,onItemClick: function(cat){
+          const ft = filterState.metricIdToType(metric.id);
+          if (!ft) return;
+          filterState.apply(spec, ft, cat, function(rank2){
+            renderSongList(rank2, spec);
+          });
+        }
+      }
     );
   });
 
   const row = sortedSongs[currentFrameIndex];
   const imgUrl = row.albumArt || "";
-
-  if (imgUrl) {
-    currentAlbumArt.classList.remove("no-art");
-    currentAlbumArt.src = imgUrl;
-    currentAlbumArt.alt = `${cleanLabelText(row.song || "")} – ${cleanLabelText(row.artist || "")}`;
-  } else {
-    currentAlbumArt.classList.add("no-art");
-    currentAlbumArt.alt = "";
-  }
+  const altText = cleanLabelText(row.song || "") + " - " + cleanLabelText(row.artist || "");
+  scheduleAlbumArtUpdate(imgUrl, altText, !__isScrubbing);
 
   const title = cleanLabelText(row.song || "(Unknown song)");
   const artist = cleanLabelText(row.artist || "(Unknown cover artist)");
@@ -1408,22 +2218,22 @@ function updateDashboard(frameIndex) {
   const coverYear = row.coverYear_parsed ? String(row.coverYear_parsed) : "Unknown";
 
   currentSongTitle.textContent = title;
-  const mode = (typeof APP_CONFIG !== "undefined" && APP_CONFIG && APP_CONFIG.mode) ? APP_CONFIG.mode : "cover";
-  const hasOrig = (row.originalArtist && String(row.originalArtist).trim()) || (row.originalYear_parsed != null);
-  if (mode === "cover" && hasOrig) {
-    currentSongArtist.textContent = `${artist} (covering ${origArtist})`;
-    currentSongMeta.textContent = `Rank ${row.rank} · Original year: ${origYear} · Cover year: ${coverYear}`;
+
+  if (spec.mode === "standard") {
+    const ystd = row.year_parsed != null ? String(row.year_parsed) : "Unknown";
+    currentSongArtist.textContent = artist;
+    currentSongMeta.textContent = "Rank " + row.rank + " · Year: " + ystd;
   } else {
-    currentSongArtist.textContent = `${artist}`;
-    currentSongMeta.textContent = `Rank ${row.rank} · Year: ${coverYear}`;
+    currentSongArtist.textContent = artist + " (covering " + origArtist + ")";
+    currentSongMeta.textContent = "Rank " + row.rank + " · Original year: " + origYear + " · Cover year: " + coverYear;
   }
 
-  // Last 15 cell: show upcoming window starting at current rank (ascending)
-  renderUpcomingFromCurrent(row.rank);
+  renderSongList(row.rank, spec);
+  renderExternalLinksForRow(row, document.getElementById("current-player-links"));
 
-  // Player: update UI only (no provider calls until Play)
   if (window.Race2Player && typeof window.Race2Player.update === "function") window.Race2Player.update(row);
 
+  filterState.updateHint(spec);
 }
 
 /* Boot */
@@ -1436,8 +2246,8 @@ function applyMobileDefaults() {
   var w = window.innerWidth || 9999;
   if (w > 650) return;
 
-  // Show only Current Song (cell2) and Last 10 Songs (cell9) by default
-  var show = {"cell2": true, "cell9": true};
+  // Show only Current Song (cell2) and Next 10 Songs (cell9) by default
+  var show = {"panel-current-song": true, "panel-results": true};
   var cells = document.querySelectorAll(".cell");
   for (var i=0; i<cells.length; i++) {
     var cell = cells[i];
@@ -1477,6 +2287,11 @@ window.addEventListener("load", applyResponsiveDeviceClass);
 window.addEventListener("resize", applyResponsiveDeviceClass);
 
 
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && activeFilter) {
+      clearActiveFilter();
+    }
+  });
 </script>
 </body>
 </html>
