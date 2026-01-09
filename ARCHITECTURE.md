@@ -43,7 +43,7 @@ flowchart TB
 
   %% Interaction loop
   G --> H[User moves slider]
-  G --> I[User clicks chart bar (optional)]
+  G --> I["User clicks chart bar (optional)"]
   G --> J[User clicks Last 10 item]
 
   %% State updates
@@ -63,8 +63,6 @@ flowchart TB
   Q --> R[Create embedded player iframe]
   R --> S[Playback continues until closed]
 ```
-
-> Mermaid syntax above is compatible with GitHub’s renderer.
 
 ---
 
