@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How AI Became Useful in My Technical Work</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --bg2: #ebe6da;
+      --ink: #1d2730;
+      --muted: #64717c;
+      --accent: #285c63;
+      --accent2: #b5653c;
+      --card: rgba(255,255,255,.84);
+      --line: rgba(29,39,48,.14);
+      --shadow: 0 24px 70px rgba(0,0,0,.34);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: var(--ink);
+      overflow: hidden;
+    }
+    .deck { width: 100vw; height: 100vh; display: grid; place-items: center; }
+    .slide {
+      display: none;
+      width: min(100vw, 1280px);
+      height: min(100vh, 720px);
+      aspect-ratio: 16/9;
+      background:
+        radial-gradient(circle at 92% 8%, rgba(181,101,60,.15), transparent 28%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
+      padding: 58px 74px;
+      position: relative;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    .slide::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 12px;
+      background: linear-gradient(var(--accent), var(--accent2));
+    }
+    h1 {
+      font-size: 52px;
+      line-height: 1.05;
+      margin: 0 0 28px;
+      letter-spacing: -0.04em;
+      max-width: 1100px;
+    }
+    h2 {
+      font-size: 30px;
+      line-height: 1.25;
+      margin: 0 0 18px;
+      font-weight: 540;
+      color: var(--muted);
+    }
+    h3 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
+    ul { margin: 0; padding-left: 1.05em; font-size: 30px; line-height: 1.33; }
+    li { margin: 9px 0; }
+    .eyebrow {
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-weight: 800;
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+    .title-slide { justify-content: center; }
+    .title-slide h1 { font-size: 66px; max-width: 980px; }
+    .title-slide h2 { font-size: 33px; max-width: 920px; }
+    .title-slide .rule { width: 180px; height: 7px; background: var(--accent); border-radius: 999px; margin: 34px 0; }
+    .section-slide { justify-content: center; }
+    .section-slide h1 { font-size: 62px; max-width: 940px; }
+    .section-slide .eyebrow, .title-slide .eyebrow { color: var(--accent); }
+    .section-slide h2 { max-width: 760px; }
+    .quote-list, .card-grid, .columns, .two-col { display: grid; gap: 22px; }
+    .quote-list { margin-top: 16px; grid-template-columns: 1fr; }
+    .quote {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px 24px;
+      font-size: 37px;
+      line-height: 1.16;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .card-grid { grid-template-columns: repeat(3, 1fr); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px 24px;
+      min-height: 130px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .card .num { color: var(--accent2); font-weight: 900; font-size: 24px; margin-bottom: 8px; }
+    .card .label { font-size: 29px; font-weight: 780; line-height: 1.1; }
+    .card .example { margin-top: 10px; color: var(--muted); font-size: 20px; line-height: 1.25; }
+    .columns { grid-template-columns: repeat(3, 1fr); }
+    .col {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      min-height: 380px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .col h3 { color: var(--accent); margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 22px; margin-bottom: 16px; }
+    .col ul { font-size: 23px; line-height: 1.3; }
+    .two-col { grid-template-columns: 1fr 1fr; align-items: start; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 26px 30px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .panel h3 { color: var(--accent); margin-bottom: 14px; }
+    .panel ul { font-size: 27px; }
+    .workflow {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-size: 25px;
+      font-weight: 620;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .arrow { color: var(--accent2); font-size: 30px; font-weight: 900; }
+    .big-question {
+      margin-top: 28px;
+      font-size: 32px;
+      line-height: 1.18;
+      font-weight: 720;
+      letter-spacing: -.035em;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 34px 38px;
+      max-width: 980px;
+    }
+    .footer-line {
+      margin-top: auto;
+      border-top: 2px solid var(--line);
+      padding-top: 20px;
+      font-size: 28px;
+      font-weight: 820;
+      color: var(--accent);
+    }
+    .small-note { color: var(--muted); font-size: 26px; line-height: 1.28; }
+    .slide-num {
+      position: absolute;
+      right: 34px;
+      bottom: 24px;
+      color: rgba(29,39,48,.45);
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .controls {
+      position: fixed;
+      left: 50%; bottom: 16px;
+      transform: translateX(-50%);
+      color: #ddd;
+      font-size: 14px;
+      opacity: .72;
+      user-select: none;
+    }
+    .presenter-hint { margin-left: 10px; color: #aaa; }
+    body.presenter {
+      background: #15191e;
+      color: #f4f1ea;
+      overflow: auto;
+    }
+    body.presenter .deck, body.presenter .controls { display: none; }
+    .presenter-view { display: none; }
+    body.presenter .presenter-view {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 22px;
+      padding: 28px;
+      min-height: 100vh;
+    }
+    .presenter-card {
+      background: #20262d;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+    .presenter-card h1, .presenter-card h2, .presenter-card h3 { color: #f4f1ea; letter-spacing: -.025em; }
+    .presenter-card h1 { font-size: 34px; margin: 0 0 10px; }
+    .presenter-card h2 { font-size: 22px; color: #b9c0c7; margin: 0 0 18px; }
+    .presenter-card h3 { font-size: 18px; text-transform: uppercase; letter-spacing: .12em; color: #d99b75; margin: 0 0 12px; }
+    .presenter-notes {
+      font-size: 25px;
+      line-height: 1.38;
+      white-space: pre-wrap;
+    }
+    .presenter-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      font-size: 18px;
+      color: #b9c0c7;
+      margin-bottom: 18px;
+    }
+    .presenter-mini {
+      font-size: 21px;
+      line-height: 1.3;
+      color: #e8e4da;
+    }
+    .timer {
+      font-variant-numeric: tabular-nums;
+      color: #d99b75;
+      font-weight: 800;
+    }
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { display: block; width: auto; height: auto; }
+      .slide { display: flex !important; page-break-after: always; box-shadow: none; width: 1280px; height: 720px; }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main class="deck">
+
+<section class="slide title-slide section-slide active">
+  <div class="eyebrow">Opening</div>
+  <h1>How AI Became Useful in My Technical Work</h1>
+  <div class="rule"></div>
+  <h2>Practical examples from debugging, architecture, and development</h2>
+  <div class="footer-line" style="margin-top:34px; font-size:17px; line-height:1.35; font-weight:560; max-width:1030px; color:var(--muted);">
+    “It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair.”<br>
+    — Charles Dickens, <em>A Tale of Two Cities</em>
+  </div>
+  <div class="slide-num">1 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Where most of us start</h1>
+  <div class="quote-list">
+    <div class="quote">What does this error mean?</div>
+    <div class="quote">Why is nginx timing out?</div>
+    <div class="quote">What’s the syntax for this command?</div>
+    <div class="quote">Explain this regex.</div>
+  </div>
+  <div class="footer-line">A better Google search.</div>
+  <div class="slide-num">2 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>How usage tends to evolve</h1>
+  <div class="card-grid">
+    <div class="card"><div class="num">1</div><div class="label">Quick answers</div><div class="example">“What does this error mean?”</div></div>
+    <div class="card"><div class="num">2</div><div class="label">Code assistance</div><div class="example">“Write / explain / refactor this”</div></div>
+    <div class="card"><div class="num">3</div><div class="label">Problem solving</div><div class="example">“Help me debug this issue”</div></div>
+    <div class="card"><div class="num">4</div><div class="label">Tool building</div><div class="example">“Create a script / converter / validator”</div></div>
+    <div class="card"><div class="num">5</div><div class="label">Design review</div><div class="example">“Pressure-test this approach”</div></div>
+    <div class="card"><div class="num">6</div><div class="label">Ongoing collaboration</div><div class="example">“Help me work through this project”</div></div>
+  </div>
+  <div class="slide-num">3 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Different interaction patterns create different value</h1>
+  <div class="columns">
+    <div class="col"><h3>Quick lookup</h3><div class="sub">Fast answers</div><ul><li>syntax</li><li>commands</li><li>error explanation</li></ul></div>
+    <div class="col"><h3>Task assistance</h3><div class="sub">Defined technical work</div><ul><li>scripts</li><li>SQL</li><li>documentation</li><li>refactoring</li><li>test generation</li></ul></div>
+    <div class="col"><h3>Collaborative problem solving</h3><div class="sub">Iterative engineering work</div><ul><li>debugging</li><li>architecture review</li><li>migration planning</li><li>legacy system analysis</li></ul></div>
+  </div>
+  <div class="slide-num">4 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Keeping the human in the loop</h1>
+  <h2>AI can produce:</h2>
+  <ul><li>confidently wrong answers</li><li>invented APIs / commands</li><li>wrong version assumptions</li><li>plausible but broken code</li><li>dangerous security guidance</li><li>bad infrastructure recommendations</li><li>incomplete business logic</li></ul>
+  <div class="footer-line">Trust, but verify.</div>
+  <div class="slide-num">5 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>What not to paste</h1>
+  <div class="two-col">
+    <div class="panel"><h3>Do not include</h3><ul><li>passwords, secrets, or credentials</li><li>production access details</li><li>sensitive customer / member / employee data</li><li>confidential internal information</li><li>regulated data</li><li>anything your organization prohibits</li></ul></div>
+    <div class="panel"><h3>Review carefully</h3><ul><li>authentication / security logic</li><li>infrastructure changes</li><li>production SQL</li><li>destructive automation</li></ul></div>
+  </div>
+  <div class="footer-line">This will be on the quiz.</div>
+  <div class="slide-num">6 / 20</div>
+</section>
+
+<section class="slide section-slide">
+  <div class="eyebrow">Section 2</div>
+  <h1>Where this becomes useful</h1>
+  <h2>Concrete patterns from real technical work</h2>
+  <div class="slide-num">7 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>A practical use case: troubleshooting</h1>
+  <div class="two-col">
+    <div class="panel"><h3>Works well for</h3><ul><li>upgrade failures</li><li>configuration issues</li><li>redirect loops</li><li>SMTP / mail problems</li><li>runtime exceptions</li><li>inherited systems nobody fully understands</li></ul></div>
+    <div class="panel"><h3>Basic pattern</h3><div class="workflow"><span class="pill">Symptoms</span><span class="arrow">→</span><span class="pill">Context</span><span class="arrow">→</span><span class="pill">Hypotheses</span><span class="arrow">→</span><span class="pill">Testing</span></div></div>
+  </div>
+  <div class="slide-num">8 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Thinking through technical trade offs</h1>
+  <div class="two-col">
+    <div class="panel"><h3>Useful for</h3><ul><li>migration planning</li><li>authentication design</li><li>branching workflows</li><li>storage strategy</li><li>integration choices</li><li>modernization planning</li></ul></div>
+    <div class="panel"><h3>Useful questions</h3><ul><li>What risks am I missing?</li><li>What assumptions are hidden?</li><li>Compare these approaches.</li><li>What breaks if we do this?</li></ul></div>
+  </div>
+  <div class="slide-num">9 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>From snippets to usable tools</h1>
+  <div class="card-grid">
+    <div class="card"><div class="label">data converters</div></div>
+    <div class="card"><div class="label">validators</div></div>
+    <div class="card"><div class="label">migration scripts</div></div>
+    <div class="card"><div class="label">ETL helpers</div></div>
+    <div class="card"><div class="label">API clients</div></div>
+    <div class="card"><div class="label">reporting utilities</div></div>
+  </div>
+  <div class="footer-line">Define input, output, constraints, and expected behavior.</div>
+  <div class="slide-num">10 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Reducing documentation debt</h1>
+  <div class="two-col">
+    <div class="panel"><h3>AI helps document</h3><ul><li>interfaces</li><li>workflows</li><li>code behavior</li><li>configs / runbooks</li><li>implementation summaries</li></ul></div>
+    <div class="panel"><h3>Harder to recover</h3><ul><li>business rationale</li><li>historical decisions</li><li>undocumented exceptions</li><li>policy intent</li></ul></div>
+  </div>
+  <div class="footer-line">RTFM</div>
+  <div class="slide-num">11 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Ongoing development collaboration</h1>
+  <div class="two-col">
+    <div class="panel"><h3>Examples</h3><ul><li>WordPress plugins</li><li>CiviCRM extensions</li><li>dashboards</li><li>APIs</li><li>internal tooling</li></ul></div>
+    <div class="panel"><h3>Workflow</h3><div class="workflow"><span class="pill">define</span><span class="arrow">→</span><span class="pill">build</span><span class="arrow">→</span><span class="pill">test</span><span class="arrow">→</span><span class="pill">revise</span><span class="arrow">→</span><span class="pill">refactor</span></div></div>
+  </div>
+  <div class="slide-num">12 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>A second set of eyes on code</h1>
+  <ul><li>maintainability review</li><li>overly complex logic</li><li>tight coupling</li><li>refactoring ideas</li><li>simplification</li><li>testability concerns</li></ul>
+  <div class="footer-line">“What makes this hard to maintain?”</div>
+  <div class="slide-num">13 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Thinking through technical change</h1>
+  <div class="two-col">
+    <div class="panel"><h3>Useful for</h3><ul><li>platform upgrades</li><li>database upgrades</li><li>framework migrations</li><li>API version changes</li><li>dependency replacements</li><li>authentication changes</li></ul></div>
+    <div class="panel"><h3>Ask</h3><ul><li>What changed between versions?</li><li>What assumptions may break?</li><li>What needs testing?</li><li>What rollback concerns exist?</li></ul></div>
+  </div>
+  <div class="slide-num">14 / 20</div>
+</section>
+
+<section class="slide section-slide">
+  <div class="eyebrow">Section 3</div>
+  <h1>We often start too late</h1>
+  <h2>Some of the highest leverage may be before code is written.</h2>
+  <div class="footer-line">Where I think more opportunity exists.</div>
+  <div class="slide-num">15 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>How will we know this works?</h1>
+  <h2>Before implementation:</h2>
+  <ul><li>define acceptance criteria</li><li>identify missing business rules</li><li>uncover hidden assumptions</li><li>generate better stakeholder questions</li><li>sketch test scenarios early</li></ul>
+  <div class="slide-num">16 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Defining tests earlier</h1>
+  <div class="card-grid">
+    <div class="card"><div class="label">acceptance scenarios</div></div>
+    <div class="card"><div class="label">edge cases</div></div>
+    <div class="card"><div class="label">regression thinking</div></div>
+    <div class="card"><div class="label">compatibility questions</div></div>
+    <div class="card"><div class="label">test data generation</div></div>
+    <div class="card"><div class="label">writing unit tests</div></div>
+  </div>
+  <div class="footer-line">Define how you’ll know it works before you build it.</div>
+  <div class="slide-num">17 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Documentation is not the same as understanding</h1>
+  <div class="two-col">
+    <div class="panel"><h3>AI can help create</h3><ul><li>onboarding guides</li><li>implementation overviews</li><li>release checklists</li><li>migration runbooks</li><li>operational playbooks</li></ul></div>
+    <div class="panel"><h3>Complexity still needs</h3><ul><li>structure</li><li>audience awareness</li><li>layering</li><li>simplification</li></ul></div>
+  </div>
+  <div class="footer-line">Shared understanding is harder than documentation.</div>
+  <div class="slide-num">18 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Legacy archaeology</h1>
+  <h2>When you inherit:</h2>
+  <ul><li>mystery cron jobs</li><li>unexplained nginx configs</li><li>abandoned plugins</li><li>unknown shell scripts</li><li>undocumented data flows</li><li>infrastructure nobody fully understands</li></ul>
+  <div class="footer-line">Explain this inherited thing so I can explain it to the next person.</div>
+  <div class="slide-num">19 / 20</div>
+</section>
+
+<section class="slide">
+  <h1>Better question</h1>
+  <h2>Not: “How are you using AI?”</h2>
+  <div class="big-question">Which parts of technical work still feel unnecessarily manual?</div>
+  
+  <div class="slide-num">20 / 20</div>
+</section>
+
+</main>
+<div class="controls">Use ← / → arrows or spacebar <span class="presenter-hint">Press P for presenter notes</span></div>
+
+<section class="presenter-view">
+  <div class="presenter-card">
+    <div class="presenter-meta">
+      <div id="presenter-count">Slide 1 / 20</div>
+      <div class="timer" id="presenter-timer">00:00</div>
+    </div>
+    <h3>Current slide</h3>
+    <h1 id="presenter-title">How AI Became Useful in My Technical Work</h1>
+    <div class="presenter-notes" id="presenter-notes"></div>
+  </div>
+  <div class="presenter-card">
+    <h3>Next slide</h3>
+    <div class="presenter-mini" id="presenter-next"></div>
+    <hr style="border:0; border-top:1px solid rgba(255,255,255,.14); margin:24px 0;">
+    <h3>Controls</h3>
+    <div class="presenter-mini">← / → or space: navigate<br>P: open presenter window<br>Home / End: first / last slide<br>R: reset timer</div>
+  </div>
+</section>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const notes = [
+`This talk actually came from an interesting exercise.
+
+I asked AI to look back across a long history of technical work we’d done together and identify patterns.
+
+What emerged was an evolution in interaction style:
+
+from lookup,
+to implementation help,
+to debugging,
+to architecture review,
+to longer-lived collaboration.
+
+That became this talk.`,
+`My first uses were simple Google replacements.
+
+Quick questions.
+
+Error interpretation.
+
+Syntax reminders.
+
+“Explain this regex.”
+
+That treats AI like a smarter search box.`,
+`My usage didn’t jump from “syntax helper” to “build systems with AI.”
+
+It evolved in stages.
+
+First: quick answers.
+
+Then code assistance.
+
+Then debugging.
+
+Then generating real utilities.
+
+Then design review.
+
+Eventually, longer-running collaborative work.`,
+`One thing I learned is that not all AI interactions are the same.
+
+Sometimes the right use is quick lookup: fast, tactical, done.
+
+Sometimes the task is more defined: generate a script, refactor code, draft documentation.
+
+And sometimes the interaction becomes exploratory: debugging, architecture tradeoffs, migration planning.
+
+The important distinction is not “good vs bad use.” It’s recognizing which interaction pattern fits the problem.`,
+`One important trust model: keep the human in the loop.
+
+These tools can be genuinely useful. They can also be confidently wrong.
+
+The risk isn’t obvious garbage. The risk is output that looks polished, plausible, and technically reasonable—but is wrong.
+
+Security logic, infrastructure guidance, version assumptions, business rules—all need human validation.
+
+This changes how we work. It does not eliminate engineering judgment.`,
+`Some things simply should not be pasted: credentials, sensitive member/customer data, confidential internal material, anything restricted by policy.
+
+Separately, some technical domains deserve extra caution even when data sensitivity isn’t the issue: auth logic, infrastructure changes, production SQL, automation that can cause damage.
+
+This is a collaboration tool—not a substitute for operational controls.`,
+`This section moves from framing into practical engineering workflows: where this has actually helped in technical work.`,
+`This may be the most immediately useful pattern.
+
+Not because AI magically knows your environment. It doesn’t.
+
+But debugging is often hypothesis-driven.
+
+You present symptoms: error text, logs, screenshots, what changed.
+
+Then environment context: OS, versions, topology, deployment details.
+
+The interaction becomes iterative: “Could it be X?” “No, because Y.” “Then what about Z?”
+
+Examples: a MySQL upgrade introduced a CiviCRM issue; another case was chasing an nginx redirect loop in a messy inherited config.`,
+`Another useful pattern is thinking through trade offs.
+
+Not: “design my system.”
+
+More: “help me think through this choice.”
+
+The useful interaction is often: here’s the current state, here are the constraints, what risks am I missing?
+
+Technical decisions often involve blind spots, assumptions, and tradeoffs—not just right answers.`,
+`One common progression is moving from code snippets to actual working tools.
+
+Not: “write me a regex.”
+
+But: “build something useful.”
+
+A converter. A validator. A migration helper. A reporting utility.
+
+The key difference is defining input, output, constraints, and expected behavior, then iterating until the tool is genuinely usable.`,
+`AI is often good at documenting observable system behavior.
+
+For example, we used it successfully to help generate Swagger documentation from API implementations.
+
+That worked well for endpoints, inputs and outputs, validation behavior, visible logic.
+
+But other developers wanted something deeper: why does this rule exist? What business decision drove this exception?
+
+That knowledge wasn’t in the code. AI can’t reliably recover intent that was never documented.`,
+`This is where the interaction becomes longer-lived.
+
+Not: “build my entire application.”
+
+More: “help me work through this implementation.”
+
+Define requirements. Build incrementally. Test in the real environment. Revise. Refactor. Repeat.
+
+The useful model is collaborative implementation—not autonomous development.`,
+`This is different from code generation.
+
+Sometimes the useful question is: “What’s wrong with this design?” or “What makes this hard to maintain?”
+
+I’ve found this useful for structural critique: complexity, coupling, hidden assumptions, refactoring opportunities, testability concerns.
+
+Not because the feedback is always right, but because it often surfaces useful questions.`,
+`This is another practical use case.
+
+Not because AI can predict your exact environment. It can’t.
+
+But it can help surface compatibility questions and migration risks.
+
+What changed between versions? What assumptions may break? What dependencies are risky? What needs testing? What rollback concerns should we think about?
+
+The value is often reducing blind spots—not getting definitive answers.`,
+`This section is about where I think more opportunity exists.
+
+Most of the examples so far start during implementation: debugging, building, reviewing, migrating.
+
+But some leverage may exist earlier.`,
+`Some of the highest leverage may actually be before code is written.
+
+Clarifying assumptions. Surfacing missing requirements. Identifying business rules that nobody stated explicitly. Improving stakeholder conversations.
+
+Better early questions can prevent expensive downstream confusion.`,
+`Another area I think is underused is defining tests earlier.
+
+This is related to shift-left testing: define how you’ll know it works before you build it.
+
+AI can help identify acceptance scenarios, edge cases, regression thinking, compatibility questions, test data, and unit test starting points.`,
+`One lesson I learned is that generating documentation is not the same as creating understanding.
+
+We created substantial implementation documentation for one project.
+
+It was accurate. It was comprehensive. It was also intimidating.
+
+Someone unfamiliar with the project could easily experience cognitive overload. Honestly, even I found it hard to keep the whole thing in my head.
+
+The challenge isn’t just capturing information. It’s making complexity understandable for the intended audience.`,
+`This may be one of the most relatable use cases.
+
+A huge amount of technical work is archaeology.
+
+Not building new things. Understanding inherited things.
+
+Mystery cron jobs. Weird shell scripts. Nginx configs written by someone long gone. Abandoned plugins still running in production.
+
+A useful interaction is: explain what this appears to do; what assumptions does it make; what could break if I change this?`,
+`I’m not suggesting every technical workflow belongs here.
+
+And I’m definitely not suggesting trust without validation.
+
+The more useful question is no longer: “Do you use AI?”
+
+It’s: where does technical work still feel slower, more repetitive, or more manual than it should?
+
+Debugging. Documentation. Testing. Migration planning. Legacy archaeology.
+
+That’s where I’ve found practical value.
+
+Not hype. Just workflow experimentation.`
+  ];
+  let current = 0;
+  const isPresenter = new URLSearchParams(location.search).get('presenter') === '1';
+  const startTimeKey = 'aiTalkStartTime';
+  if (!localStorage.getItem(startTimeKey)) localStorage.setItem(startTimeKey, Date.now().toString());
+
+  if (isPresenter) document.body.classList.add('presenter');
+
+  function slideTitle(i) {
+    const h = slides[i]?.querySelector('h1');
+    return h ? h.textContent.trim() : '';
+  }
+
+  function updatePresenter() {
+    const count = document.getElementById('presenter-count');
+    const title = document.getElementById('presenter-title');
+    const n = document.getElementById('presenter-notes');
+    const next = document.getElementById('presenter-next');
+    if (!count || !title || !n || !next) return;
+    count.textContent = `Slide ${current + 1} / ${slides.length}`;
+    title.textContent = slideTitle(current);
+    n.textContent = notes[current] || '';
+    next.textContent = current < slides.length - 1 ? `${current + 2}. ${slideTitle(current + 1)}` : 'End of deck';
+  }
+
+  function broadcast() {
+    localStorage.setItem('aiTalkCurrentSlide', String(current));
+  }
+
+  function show(i, shouldBroadcast = true) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === current));
+    updatePresenter();
+    if (shouldBroadcast) broadcast();
+  }
+
+  function openPresenter() {
+    const url = `${location.pathname}?presenter=1`;
+    window.open(url, 'ai-talk-presenter', 'width=1100,height=760');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') show(current + 1);
+    if (e.key === 'ArrowLeft') show(current - 1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key.toLowerCase() === 'p') openPresenter();
+    if (e.key.toLowerCase() === 'r') localStorage.setItem(startTimeKey, Date.now().toString());
+  });
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'aiTalkCurrentSlide') show(Number(e.newValue || 0), false);
+  });
+
+  function updateTimer() {
+    const el = document.getElementById('presenter-timer');
+    if (!el) return;
+    const start = Number(localStorage.getItem(startTimeKey) || Date.now());
+    const elapsed = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+  }
+
+  show(Number(localStorage.getItem('aiTalkCurrentSlide') || 0), false);
+  updateTimer();
+  setInterval(updateTimer, 1000);
+</script>
+</body>
+</html>
